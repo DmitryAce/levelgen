@@ -58,6 +58,83 @@ def generate_map_maze(width, height, coin_chance):
     return gm_map
 
 
+# Создание комнаты с сокровищем
+def gen_room(width, height, gm_map):
+    x = random.randint(2, width - 3)  # Координаты сокровища
+    y = random.randint(2, height - 3)
+
+    # G fix
+    if x == 3:
+        x -= 1
+    elif x == width - 4:
+        x += 1
+    if y == height - 4:
+        y += 1
+    elif y == 3:
+        y -= 1
+
+    # Отчищаем комнату
+    for i in range(x - 1, x + 2):
+        for j in range(y - 1, y + 2):
+            gm_map[j][i] = ' '
+
+    gm_map[y][x] = 't'
+
+    # Верхняя и нижняя границы
+    for i in range(x - 2, x + 3):
+        gm_map[y - 2][i] = '#'
+        gm_map[y + 2][i] = '#'
+        gm_map[y + 3][i] = ' '
+        gm_map[y - 3][i] = ' '
+
+    gm_map[y - 3][x - 3] = ' '
+    gm_map[y - 3][x + 3] = ' '
+    gm_map[y + 3][x - 3] = ' '
+    gm_map[y + 3][x + 3] = ' '
+
+    # Правая и левая границы
+    for i in range(y - 2, y + 3):
+        gm_map[i][x + 2] = '#'
+        gm_map[i][x - 2] = '#'
+        gm_map[i][x - 3] = ' '
+        gm_map[i][x + 3] = ' '
+
+    while True:
+        # Расположение двери
+        door = random.randint(1, 4)
+
+        if door == 1 and y != 2:
+            k = random.randint(1, 3)
+            gm_map[y - 2][x - 2 + k] = 'd'
+            break
+        elif door == 2 and x != width - 3:
+            k = random.randint(1, 3)
+            gm_map[y - 2 + k][x + 2] = 'd'
+            break
+        elif door == 3 and y != height - 3:
+            k = random.randint(1, 3)
+            gm_map[y + 2][x - 2 + k] = 'd'
+            break
+        elif door == 2 and x != 2:
+            k = random.randint(1, 3)
+            gm_map[y - 2 + k][x - 2] = 'd'
+            break
+
+    # Создаем ключ
+    while True:
+        i = random.randint(1, width - 1)
+        j = random.randint(1, height - 1)
+
+        if i in range(x - 2, x + 3) and j in range(y - 2, y + 3):
+            continue
+        else:
+            if gm_map[j][i] != "1" and gm_map[j][i] != "#":
+                gm_map[j][i] = "k"
+                break
+
+    return gm_map
+
+
 def save_map_to_file(game_map, filename):
     with open(filename, 'w') as f:
         for row in game_map:
@@ -66,10 +143,11 @@ def save_map_to_file(game_map, filename):
 
 if __name__ == "__main__":
     # Пример использования:
-    width = 15
-    height = 15
+    width = 21
+    height = 21
     coin_chance = 0.1  # Вероятность появления монетки
     filename = 'map_maze.txt'  # Имя файла для сохранения карты
 
     map = generate_map_maze(width, height, coin_chance)
+    map = gen_room(width, height, map)
     save_map_to_file(map, filename)
