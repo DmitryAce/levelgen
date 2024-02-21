@@ -66,8 +66,8 @@ def save_map_to_file(game_map, filename):
 
 if __name__ == "__main__":
     # Пример использования:
-    width = 15
-    height = 15
+    width = 100
+    height = 100
     coin_chance = 0.1  # Вероятность появления монетки
     filename = 'map_maze.txt'  # Имя файла для сохранения карты
 
