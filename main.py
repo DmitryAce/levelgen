@@ -84,10 +84,10 @@ def addcoins(board, height, width, coin_chance):
     return board
 
 
-def addwalls1010(board, size):
+def addwalls1010(board, wdth):
     # Добавляем верхнюю и нижнюю стены
-    board.insert(0, ["#"] * (size))
-    board.append(["#"] * (size))
+    board.insert(0, ["#"] * wdth)
+    board.append(["#"] * wdth)
 
     return board
 
@@ -103,13 +103,13 @@ def main(seed):
 
     # ---MAP---
     gen_method = random.choice(gen_method)
-    #size = random.randint(16, 32)
-    size = 32 # Метод в процессе отладки
+    width = random.randint(16, 32)
+    height = width
 
     filename = 'board.txt'  # Имя файла для сохранения карты
     coin_chance = random.uniform(0.1, 0.2)
 
-    board = [['B' for _ in range(size)] for _ in range(size)]
+    board = [['B' for _ in range(width)] for _ in range(height)]
 
     # Gen Map Based on NAM
     match gen_method:
@@ -131,25 +131,25 @@ def main(seed):
             ])
 
     # Заменяем все символы 'B' на '#'
-    for y in range(size):
-        for x in range(size):
+    for y in range(height):
+        for x in range(width):
             if board[y][x] == 'B':
                 board[y][x] = '#'
 
     # Заменяем все символы 'W' на ' '
-    for y in range(size):
-        for x in range(size):
+    for y in range(height):
+        for x in range(width):
             if board[y][x] == 'W' or board[y][x] == 'G' or board[y][
                 x] == 'R' or board[y][x] == 'A':
                 board[y][x] = ' '
 
-    #---TILES---
+    # ---TILES---
     """Сделал чтобы можно было проверить определьные точки 
     при создании сокровищ"""
     tiles = []
-    for y in board:
-        for x in y:
-            # work in progress
+    for y in range(len(board)):
+        for x in range(len(board[y])):
+            tiles.append([x, y])
 
     # ---PLOT---
     for i in range(0, N):
@@ -175,21 +175,38 @@ def main(seed):
             f"Необходимо найти {format_treasures(rooms)}, чтобы собирать " + \
             "сокровища нужно подбирать ключи.")
 
-        board = addwalls1010(board, size)
-
         # Создаем комнаты
+        treasure_coordinates = []
+
         while rooms:
-            x = random.randint(2, size - 3)  # Координаты сокровища
-            y = random.randint(2, size - 3 + 2)
-            #+2 к размеру Из-за добавления верхней и нижней стены
+            x = random.randint(2, width - 3)  # Координаты сокровища
+            y = random.randint(2, height - 3)
+
+            # Подбираем точку для сокровища
+            if not ([x, y] in treasure_coordinates):
+                flag = True
+                for center in treasure_coordinates:
+                    # Перебираем все клеточки прошлых сокровищниц
+                    # Чтобы не наложить их друг на друга
+                    for i in range(center[0] - 5, center[0] + 6):
+                        for j in range(center[1] - 5, center[1] + 6):
+                            if [x, y] == [i, j]:
+                                flag = False
+                if flag:
+                    treasure_coordinates.append([x, y])
+                    rooms -= 1
+                else:
+                    continue
+            else:
+                continue
 
             # G fix
             if x == 3:
                 x -= 1
-            elif x == size - 4:
+            elif x == width - 4:
                 x += 1
             # +2 к размеру Из-за добавления верхней и нижней стены
-            if y == size - 4 + 2:
+            if y == height - 4 + 2:
                 y += 1
             elif y == 3:
                 y -= 1
@@ -205,21 +222,29 @@ def main(seed):
             for i in range(x - 2, x + 3):
                 board[y - 2][i] = '#'
                 board[y + 2][i] = '#'
-                board[y + 3][i] = ' '
-                board[y - 3][i] = ' '
+                if [i, y + 3] in tiles:
+                    board[y + 3][i] = ' '
+                if [i, y - 3] in tiles:
+                    board[y - 3][i] = ' '
 
             # углы
-            board[y - 3][x - 3] = ' '
-            board[y - 3][x + 3] = ' '
-            board[y + 3][x - 3] = ' '
-            board[y + 3][x + 3] = ' '
+            if [x - 3, y - 3] in tiles:
+                board[y - 3][x - 3] = ' '
+            if [x + 3, y - 3] in tiles:
+                board[y - 3][x + 3] = ' '
+            if [x - 3, y + 3] in tiles:
+                board[y + 3][x - 3] = ' '
+            if [x + 3, y + 3] in tiles:
+                board[y + 3][x + 3] = ' '
 
             # Правая и левая границы
             for i in range(y - 2, y + 3):
                 board[i][x + 2] = '#'
                 board[i][x - 2] = '#'
-                board[i][x - 3] = ' '
-                board[i][x + 3] = ' '
+                if [x - 3, i] in tiles:
+                    board[i][x - 3] = ' '
+                if [x + 3, i] in tiles:
+                    board[i][x + 3] = ' '
 
             while True:
                 # Расположение двери
@@ -229,11 +254,11 @@ def main(seed):
                     k = random.randint(1, 3)
                     board[y - 2][x - 2 + k] = 'd'
                     break
-                elif door == 2 and x != size - 3:
+                elif door == 2 and x != width - 3:
                     k = random.randint(1, 3)
                     board[y - 2 + k][x + 2] = 'd'
                     break
-                elif door == 3 and y != size - 3:
+                elif door == 3 and y != height - 3:
                     k = random.randint(1, 3)
                     board[y + 2][x - 2 + k] = 'd'
                     break
@@ -244,8 +269,8 @@ def main(seed):
 
             # Создаем ключ
             while True:
-                i = random.randint(1, size - 1)
-                j = random.randint(1, size - 1)
+                i = random.randint(1, width - 1)
+                j = random.randint(1, height - 1)
 
                 if i in range(x - 2, x + 3) and j in range(y - 2, y + 3):
                     continue
@@ -254,10 +279,13 @@ def main(seed):
                         board[j][i] = "k"
                         break
 
+    # --EXIT--
+    ''' Для сюжета с выходом необходимо будет доработать добавление на карту недостающих сплошных стен'''
+
     print(task)
-    addcoins(board, size, size, coin_chance)
+    addcoins(board, height, width, coin_chance)
     save_map(board, filename)
 
 
 if __name__ == '__main__':
-    main(131)
+    main(157)

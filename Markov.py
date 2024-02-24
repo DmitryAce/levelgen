@@ -92,8 +92,11 @@ if __name__ == "__main__":
     # board = gen_board(21, 21, 10)
     board = [['B' for _ in range(width)] for _ in range(height)]
 
-    interp(board, 'BWG', [
-        rule('WBB', 'WAW')
+    interp(board, 'BRWA', [
+        rule('RBB', 'WAR'),
+        rule('WBB', 'WAR'),
+        rule('RBR', 'WAW'),
+        rule('RBW', 'WAW'),
     ])
 
     # Заменяем все символы 'B' на '#'
