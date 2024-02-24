@@ -1,6 +1,5 @@
-random = __import__("random")
-time = __import__("time")
-os = __import__("os")
+import random
+import time
 
 
 def save_map(game_map, filename):
@@ -113,22 +112,23 @@ def main(seed):
     board = [['B' for _ in range(size)] for _ in range(size)]
 
     # Gen Map Based on NAM
-    if gen_method == "MazeGrowth":
-        interp(board, 'BWG', [
-            rule('WBB', 'WAW')
-        ])
-    elif gen_method == "MazeBacktracker":
-        interp(board, 'BRGW', [
-            rule('RBB', 'GGR'),
-            rule('RGG', 'WWR'),
-        ])
-    elif gen_method == "NoDeadEnds":
-        interp(board, 'BRWA', [
-            rule('RBB', 'WAR'),
-            rule('WBB', 'WAR'),
-            rule('RBR', 'WAW'),
-            rule('RBW', 'WAW'),
-        ])
+    match gen_method:
+        case "MazeGrowth":
+            interp(board, 'BWG', [
+                rule('WBB', 'WAW')
+            ])
+        case "MazeBacktracker":
+            interp(board, 'BRGW', [
+                rule('RBB', 'GGR'),
+                rule('RGG', 'WWR'),
+            ])
+        case "NoDeadEnds":
+            interp(board, 'BRWA', [
+                rule('RBB', 'WAR'),
+                rule('WBB', 'WAR'),
+                rule('RBR', 'WAW'),
+                rule('RBW', 'WAW'),
+            ])
 
     # Заменяем все символы 'B' на '#'
     for y in range(size):
