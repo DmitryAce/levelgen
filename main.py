@@ -1,4 +1,12 @@
 import time
+import sys
+import json
+from importlib import import_module
+from pathlib import Path
+from random import randrange, shuffle
+import tkinter as tk
+from plitk import load_tileset, PliTk
+from plitk import save_canvas
 
 
 def xorshift32(x):
@@ -115,7 +123,7 @@ def addwalls(board, sizex, sizey):
 
     # Нижняя граница
     for x in range(0, sizex):
-        if board[sizey-1][x] != "#":
+        if board[sizey - 1][x] != "#":
             board.append(["#"] * (sizex))
             sizey += 1
             break
@@ -139,7 +147,7 @@ def addwalls(board, sizex, sizey):
     return board, sizex, sizey
 
 
-def main():
+def main(seed):
     events = ["coins", "exit", "treasure"]
     gen_method = ["MazeBacktracker", "MazeGrowth", "NoDeadEnds"]
     N = random.randint(1, 3)
@@ -148,7 +156,7 @@ def main():
 
     # ---MAP---
     gen_method = random.choice(gen_method)
-    width = random.randint(16, 32)
+    width = random.randint(16, 22)
     height = width
 
     filename = 'board.txt'  # Имя файла для сохранения карты
@@ -205,7 +213,10 @@ def main():
             if not (temp in plot):
                 plot.append(temp)
                 break
-    print(plot, " - ", N, ", ", gen_method)
+
+    print(seed, " ", plot, " - ", N, ", ", gen_method)
+    with open("log.txt", "a") as file:
+        file.write(f"{seed}  {plot} - {N}, {gen_method}\n")
 
     # --TREASURES--
     # Создаем комнаты
@@ -339,8 +350,8 @@ def main():
         coins_goal += int(coin_chance * coins_goal)
 
         while coins_goal:
-            x = random.randint(0, width-1)
-            y = random.randint(0, height-1)
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
 
             if board[y][x] == " ":
                 board[y][x] = "1"
@@ -349,51 +360,53 @@ def main():
     # --EXIT--
     if "exit" in plot:
         # Случайное количество выходов на карте
-        exits = random.randint(1,3)
+        exits = random.randint(1, 3)
 
         while exits:
-            direction = random.randint(1,4)
+            direction = random.randint(1, 4)
 
             # Много проверок учитывают чтобы выход не появился внутри сокровищницы
             match direction:
                 case 1:
-                    x = random.randint(1,width-2)
+                    x = random.randint(1, width - 2)
                     if board[0][x] == "#" and board[1][x] != "#":
                         flag = True
                         for center in treasure_coordinates:
-                            if (center[0]-2 < x < center[0]+2) and (center[1] == 2 or center[1] == 3):
+                            if (center[0] - 2 < x < center[0] + 2) and (center[1] == 2 or center[1] == 3):
                                 flag = False
                                 break
-                    if not flag: continue
-                    else:
-                        board[0][x] = "E"
-                        exits -= 1
+                        if not flag:
+                            continue
+                        else:
+                            board[0][x] = "E"
+                            exits -= 1
                 case 2:
                     y = random.randint(1, height - 2)
                     if board[y][-1] == "#" and board[y][-2] != "#":
                         flag = True
                         for center in treasure_coordinates:
-                            if (center[0] > width-4) and (center[1]-2 < y < center[1]+2):
+                            if (center[0] > width - 4) and (center[1] - 2 < y < center[1] + 2):
                                 flag = False
                                 break
-                    if not flag:
-                        continue
-                    else:
-                        board[y][-1] = "E"
-                        exits -= 1
+                        if not flag:
+                            continue
+                        else:
+                            board[y][-1] = "E"
+                            exits -= 1
                 case 3:
                     x = random.randint(1, width - 2)
                     if board[-1][x] == "#" and board[-2][x] != "#":
                         flag = True
                         for center in treasure_coordinates:
-                            if (center[0] - 2 < x < center[0] + 2) and (center[1] == height - 2 or center[1] == height - 3):
+                            if (center[0] - 2 < x < center[0] + 2) and (
+                                    center[1] == height - 2 or center[1] == height - 3):
                                 flag = False
                                 break
-                    if not flag:
-                        continue
-                    else:
-                        board[-1][x] = "E"
-                        exits -= 1
+                        if not flag:
+                            continue
+                        else:
+                            board[-1][x] = "E"
+                            exits -= 1
                 case 4:
                     y = random.randint(1, height - 2)
                     if board[y][0] == "#" and board[y][1] != "#":
@@ -402,19 +415,160 @@ def main():
                             if (center[0] < 4) and (center[1] - 2 < y < center[1] + 2):
                                 flag = False
                                 break
-                    if not flag:
-                        continue
-                    else:
-                        board[y][0] = "E"
-                        exits -= 1
+                        if not flag:
+                            continue
+                        else:
+                            board[y][0] = "E"
+                            exits -= 1
 
         task.append(
             f"Escape from DandyBot.")
 
-    print(task)
-    save_map(board, filename)
+    # --SPAWNPOINT--
+    spawnpoint = []
+    while True:
+        x = random.randint(0, width - 1)
+        y = random.randint(0, height - 1)
+
+        if not ([x, y] in treasure_coordinates):
+            flag = True
+            for center in treasure_coordinates:
+                # Перебираем все клеточки прошлых сокровищниц
+                # Чтобы не наложить их друг на друга
+                for i in range(center[0] - 3, center[0] + 3):
+                    for j in range(center[1] - 3, center[1] + 3):
+                        if [x, y] == [i, j]:
+                            flag = False
+            if flag:
+                if board[y][x] == " ":
+                    spawnpoint = [x, y]
+                    break;
+            else:
+                continue
+        else:
+            continue
+
+    return board, task, spawnpoint
+
+
+def make_variants(seed):
+    SCALE = 1
+    # Загружаем данные из файла
+    with open('game.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    if len(data["levels"]) != 0:
+        lvl = data["levels"][-1]["map"]
+    else:
+        lvl = -1
+
+    lvl += 1
+    board, task, spawn_point = main(seed)
+    formatted_board = [''.join(sublist) for sublist in board]
+
+    data["maps"].append(formatted_board)
+    data["tasks"].append(' '.join(task))
+    data["levels"].append({"map": lvl, "steps": 10000, "start": spawn_point})
+
+    # Сохраняем обновленные данные обратно в файл
+    with open('game.json', 'w', encoding='utf-8') as f:  # Указываем кодировку UTF-8
+        json.dump(data, f, ensure_ascii=False, indent=2)  # ensure_ascii=False для поддержки Unicode
+
+    class Board:
+        def __init__(self, game, canvas, label):
+            self.game = game
+            self.canvas = canvas
+            self.label = label
+            self.tileset = load_tileset(game["tileset"])
+            self.screen = PliTk(canvas, 0, 0, 0, 0, self.tileset, SCALE)
+            self.load_players()
+            self.level_index = -1  # Последний урвоень в уровнях
+            self.load_level()
+
+        def load_players(self):
+            self.players = []
+            for i, name in enumerate(self.game["players"]):
+                tile = self.game["tiles"]["@"][i]
+                self.players.append(Player(name, [""], self, tile))
+            shuffle(self.players)
+
+        def load_level(self):  # загрузка уровня!
+            self.gold = 0  # обнуляемся
+            self.steps = 0
+            self.level = self.game["levels"][self.level_index]  # фиксируем параметры уровня
+            data = self.game["maps"][self.level["map"]]  # фиксируем карту
+            cols, rows = len(data[0]), len(data)  # размеры с массива входной карты
+            self.map = [[data[y][x] for y in range(rows)] for x in range(cols)]  # превращаем карту в массив
+            self.has_player = [[None for y in range(rows)] for x in range(cols)]
+            self.canvas.config(width=cols * self.tileset["tile_width"] * SCALE,
+                               height=rows * self.tileset["tile_height"] * SCALE)
+            self.level["gold"] = sum(sum(int(cell)
+                                         if cell.isdigit() else 0 for cell in row) for row in data)
+            self.screen.resize(cols, rows)
+            for y in range(rows):
+                for x in range(cols):
+                    self.update(x, y)
+            for p in self.players:
+                self.add_player(p, *self.level["start"])
+            self.canvas.update()  # Обновляем холст, чтобы отрисовать все элементы
+            time.sleep(1)  # Даем время для отрисовки
+            save_canvas(self.canvas, f'maps/map_{seed}.png')
+
+        def play(self):
+            return self.load_level()
+
+        def update(self, x, y):
+            if self.has_player[x][y]:
+                self.screen.set_tile(x, y, self.has_player[x][y].tile)
+            else:
+                self.screen.set_tile(x, y, self.game["tiles"][self.map[x][y]])
+
+        def add_player(self, player, x, y):
+            player.x, player.y = x, y
+            self.has_player[x][y] = player
+            self.update(x, y)
+
+    class Player:
+        def __init__(self, name, script, board, tile):
+            self.name = name
+            self.script = script
+            self.board = board
+            self.tile = tile
+            self.x, self.y = 0, 0
+            self.gold = 0
+
+    # Создание изображения карты
+    root = tk.Tk()
+    root.configure(background="black")
+    canvas = tk.Canvas(root, bg="black", highlightthickness=0)
+    canvas.pack(side=tk.LEFT)
+    label = tk.Label(root, font=("TkFixedFont",),
+                     justify=tk.RIGHT, fg="white", bg="gray20")
+    label.pack(side=tk.RIGHT, anchor="n")
+    filename = sys.argv[1] if len(sys.argv) == 2 else "game.json"
+    game = json.loads(Path(filename).read_text())  # game.json подгружается тут в game
+    board = Board(game, canvas, label)
+    board.play()
+    root.destroy()  # Закрытие окна Tkinter
+
+    # Создаем файл Markdown
+    with open('output.md', 'a', encoding='utf-8') as f:
+        f.write(f'# Вариант {lvl}')
+        f.write("\n![map](maps/map_{}.png)\n\n    ".format(seed))
+        f.write(" " + ' '.join(task) + "\n")
+        f.write("\n")
 
 
 if __name__ == '__main__':
-    random = Rand(252151)
-    main()
+    seeds = [
+        7392, 1854, 6271, 3498, 5026,
+        9173, 2685, 5409, 6318, 4027,
+        8742, 5963, 1085, 3276, 9104,
+        4831, 5729, 3465, 8215, 6597,
+        2074, 9658, 4137, 7284, 8402,
+        3916, 5742, 8961, 2437, 6952,
+        8174, 4602, 1398, 7532, 6285,
+        9041, 5726, 3851, 2109, 6843
+    ]
+    for seed in seeds:
+        random = Rand(seed)
+        make_variants(seed)

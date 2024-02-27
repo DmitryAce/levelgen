@@ -1,0 +1,40 @@
+7392  ['exit', 'coins'] - 2, MazeGrowth
+1854  ['coins'] - 1, NoDeadEnds
+6271  ['treasure', 'exit'] - 2, MazeBacktracker
+3498  ['treasure', 'coins', 'exit'] - 3, MazeBacktracker
+5026  ['exit'] - 1, NoDeadEnds
+9173  ['exit', 'coins'] - 2, MazeBacktracker
+2685  ['treasure'] - 1, NoDeadEnds
+5409  ['exit', 'coins'] - 2, MazeBacktracker
+6318  ['exit', 'coins'] - 2, MazeBacktracker
+4027  ['treasure'] - 1, MazeGrowth
+8742  ['coins', 'treasure'] - 2, MazeBacktracker
+5963  ['treasure', 'coins'] - 2, NoDeadEnds
+1085  ['coins', 'treasure'] - 2, MazeGrowth
+3276  ['coins', 'exit', 'treasure'] - 3, MazeGrowth
+9104  ['exit', 'treasure'] - 2, MazeBacktracker
+4831  ['exit'] - 1, NoDeadEnds
+5729  ['exit', 'treasure', 'coins'] - 3, MazeGrowth
+3465  ['exit', 'treasure'] - 2, MazeGrowth
+8215  ['treasure'] - 1, NoDeadEnds
+6597  ['exit'] - 1, MazeBacktracker
+2074  ['exit', 'coins'] - 2, MazeBacktracker
+9658  ['treasure'] - 1, MazeBacktracker
+4137  ['coins'] - 1, MazeBacktracker
+7284  ['coins', 'exit', 'treasure'] - 3, MazeGrowth
+8402  ['coins', 'treasure', 'exit'] - 3, MazeBacktracker
+3916  ['exit', 'coins'] - 2, MazeGrowth
+5742  ['coins', 'treasure', 'exit'] - 3, NoDeadEnds
+8961  ['exit'] - 1, MazeGrowth
+2437  ['treasure', 'exit'] - 2, MazeBacktracker
+6952  ['treasure'] - 1, MazeBacktracker
+8174  ['coins', 'treasure'] - 2, NoDeadEnds
+4602  ['exit', 'coins'] - 2, MazeBacktracker
+1398  ['coins'] - 1, NoDeadEnds
+7532  ['exit', 'treasure'] - 2, MazeBacktracker
+6285  ['treasure'] - 1, MazeBacktracker
+9041  ['treasure', 'coins', 'exit'] - 3, NoDeadEnds
+5726  ['treasure', 'exit', 'coins'] - 3, MazeGrowth
+3851  ['treasure'] - 1, MazeGrowth
+2109  ['exit', 'treasure'] - 2, NoDeadEnds
+6843  ['coins'] - 1, MazeGrowth
