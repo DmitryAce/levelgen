@@ -322,7 +322,7 @@ def main(seed):
                     if not ([x - 2 + k, y + 2] in tiles): continue
                     board[y + 2][x - 2 + k] = 'd'
                     break
-                elif door == 2 and x != 2:
+                elif door == 4 and x != 2:
                     k = random.randint(1, 3)
                     if not ([x - 2, y - 2 + k] in tiles): continue
                     board[y - 2 + k][x - 2] = 'd'
@@ -333,10 +333,11 @@ def main(seed):
                 i = random.randint(1, width - 1)
                 j = random.randint(1, height - 1)
 
+                # Первый ключ точно не будет лежать внутри других сокровищниц
                 if i in range(x - 2, x + 3) and j in range(y - 2, y + 3):
                     continue
                 else:
-                    if board[j][i] != "1" and board[j][i] != "#":
+                    if board[j][i] == " ":
                         board[j][i] = "k"
                         break
 
@@ -510,7 +511,7 @@ def make_variants(seed):
             for p in self.players:
                 self.add_player(p, *self.level["start"])
             self.canvas.update()  # Обновляем холст, чтобы отрисовать все элементы
-            time.sleep(1)  # Даем время для отрисовки
+            time.sleep(2)  # Даем время для отрисовки
             save_canvas(self.canvas, f'maps/map_{seed}.png')
 
         def play(self):
@@ -559,16 +560,15 @@ def make_variants(seed):
 
 
 if __name__ == '__main__':
-    seeds = [
-        7392, 1854, 6271, 3498, 5026,
-        9173, 2685, 5409, 6318, 4027,
-        8742, 5963, 1085, 3276, 9104,
-        4831, 5729, 3465, 8215, 6597,
-        2074, 9658, 4137, 7284, 8402,
-        3916, 5742, 8961, 2437, 6952,
-        8174, 4602, 1398, 7532, 6285,
-        9041, 5726, 3851, 2109, 6843
-    ]
+    seeds = [12457, 30984, 76521, 89014, 43210, 56789, 23456, 98765, 87654,
+             54321,
+             45678, 98701, 10293, 56780, 23401, 87543, 98102, 34567, 89012,
+             67890,
+             54309, 87621, 90876, 12345, 67801, 90123, 45601, 89034, 76123,
+             20897,
+             90128, 32098, 54987, 10987, 89765, 12389, 98732, 56098, 12890,
+             89076]
+
     for seed in seeds:
         random = Rand(seed)
         make_variants(seed)
