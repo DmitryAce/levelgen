@@ -223,6 +223,7 @@ def main(seed):
     treasure_coordinates = []
     if "treasure" in plot:
         rooms = random.randint(1, 3)
+        keys = rooms
 
         # Функция для правильного склонения слова "сокровище"
         def format_treasures(count):
@@ -328,18 +329,28 @@ def main(seed):
                     board[y - 2 + k][x - 2] = 'd'
                     break
 
-            # Создаем ключ
-            while True:
-                i = random.randint(1, width - 1)
-                j = random.randint(1, height - 1)
+        # Создаем ключ
+        check = True
+        while keys:
+            x = random.randint(1, width - 1)
+            y = random.randint(1, height - 1)
 
-                # Первый ключ точно не будет лежать внутри других сокровищниц
-                if i in range(x - 2, x + 3) and j in range(y - 2, y + 3):
-                    continue
-                else:
-                    if board[j][i] == " ":
-                        board[j][i] = "k"
-                        break
+            flag = True
+            if check:
+                for center in treasure_coordinates:
+                    # Гарантируем хотя бы 1 ключ вне сокровищниц
+                    for i in range(center[0] - 2, center[0] + 2):
+                        for j in range(center[1] - 2, center[1] + 2):
+                            if [x, y] == [i, j]:
+                                flag = False
+            if flag:
+                if board[y][x] == " ":
+                    board[y][x] = "k"
+                    keys -= 1
+                    check = False
+            else:
+                continue
+
 
     # --COINS--
     if "coins" in plot:
@@ -360,70 +371,95 @@ def main(seed):
 
     # --EXIT--
     if "exit" in plot:
+        # Вариация сюжета с выходами
+        mode = random.randint(1, 2)
         # Случайное количество выходов на карте
-        exits = random.randint(1, 3)
+        match mode:
+            # Выход с рычагом
+            case 1:
+                task.append(
+                    f"Сбегите с локации. Чтобы активировать выход нужно переключить рычаг.")
 
-        while exits:
-            direction = random.randint(1, 4)
+                while True:
+                    x = random.randint(0, width - 1)
+                    y = random.randint(0, height - 1)
 
-            # Много проверок учитывают чтобы выход не появился внутри сокровищницы
-            match direction:
-                case 1:
-                    x = random.randint(1, width - 2)
-                    if board[0][x] == "#" and board[1][x] != "#":
-                        flag = True
-                        for center in treasure_coordinates:
-                            if (center[0] - 2 < x < center[0] + 2) and (center[1] == 2 or center[1] == 3):
-                                flag = False
-                                break
-                        if not flag:
-                            continue
-                        else:
-                            board[0][x] = "E"
-                            exits -= 1
-                case 2:
-                    y = random.randint(1, height - 2)
-                    if board[y][-1] == "#" and board[y][-2] != "#":
-                        flag = True
-                        for center in treasure_coordinates:
-                            if (center[0] > width - 4) and (center[1] - 2 < y < center[1] + 2):
-                                flag = False
-                                break
-                        if not flag:
-                            continue
-                        else:
-                            board[y][-1] = "E"
-                            exits -= 1
-                case 3:
-                    x = random.randint(1, width - 2)
-                    if board[-1][x] == "#" and board[-2][x] != "#":
-                        flag = True
-                        for center in treasure_coordinates:
-                            if (center[0] - 2 < x < center[0] + 2) and (
-                                    center[1] == height - 2 or center[1] == height - 3):
-                                flag = False
-                                break
-                        if not flag:
-                            continue
-                        else:
-                            board[-1][x] = "E"
-                            exits -= 1
-                case 4:
-                    y = random.randint(1, height - 2)
-                    if board[y][0] == "#" and board[y][1] != "#":
-                        flag = True
-                        for center in treasure_coordinates:
-                            if (center[0] < 4) and (center[1] - 2 < y < center[1] + 2):
-                                flag = False
-                                break
-                        if not flag:
-                            continue
-                        else:
-                            board[y][0] = "E"
-                            exits -= 1
+                    if board[y][x] == " ":
+                        board[y][x] = "x"
+                        break
 
-        task.append(
-            f"Escape from DandyBot.")
+                while True:
+                    x = random.randint(0, width - 1)
+                    y = random.randint(0, height - 1)
+
+                    if board[y][x] == " ":
+                        board[y][x] = "l"
+                        break
+
+            # 1-3 Выхода, есть фейковые
+            case 2:
+                exits = random.randint(1, 3)
+                while exits:
+                    direction = random.randint(1, 4)
+
+                    # Много проверок учитывают чтобы выход не появился внутри сокровищницы
+                    match direction:
+                        case 1:
+                            x = random.randint(1, width - 2)
+                            if board[0][x] == "#" and board[1][x] != "#":
+                                flag = True
+                                for center in treasure_coordinates:
+                                    if (center[0] - 2 < x < center[0] + 2) and (center[1] == 2 or center[1] == 3):
+                                        flag = False
+                                        break
+                                if not flag:
+                                    continue
+                                else:
+                                    board[0][x] = "E"
+                                    exits -= 1
+                        case 2:
+                            y = random.randint(1, height - 2)
+                            if board[y][-1] == "#" and board[y][-2] != "#":
+                                flag = True
+                                for center in treasure_coordinates:
+                                    if (center[0] > width - 4) and (center[1] - 2 < y < center[1] + 2):
+                                        flag = False
+                                        break
+                                if not flag:
+                                    continue
+                                else:
+                                    board[y][-1] = "E"
+                                    exits -= 1
+                        case 3:
+                            x = random.randint(1, width - 2)
+                            if board[-1][x] == "#" and board[-2][x] != "#":
+                                flag = True
+                                for center in treasure_coordinates:
+                                    if (center[0] - 2 < x < center[0] + 2) and (
+                                            center[1] == height - 2 or center[1] == height - 3):
+                                        flag = False
+                                        break
+                                if not flag:
+                                    continue
+                                else:
+                                    board[-1][x] = "E"
+                                    exits -= 1
+                        case 4:
+                            y = random.randint(1, height - 2)
+                            if board[y][0] == "#" and board[y][1] != "#":
+                                flag = True
+                                for center in treasure_coordinates:
+                                    if (center[0] < 4) and (center[1] - 2 < y < center[1] + 2):
+                                        flag = False
+                                        break
+                                if not flag:
+                                    continue
+                                else:
+                                    board[y][0] = "E"
+                                    exits -= 1
+
+                task.append(
+                    f"Escape from DandyBot.")
 
     # --SPAWNPOINT--
     spawnpoint = []
@@ -521,7 +557,10 @@ def make_variants(seed):
             if self.has_player[x][y]:
                 self.screen.set_tile(x, y, self.has_player[x][y].tile)
             else:
-                self.screen.set_tile(x, y, self.game["tiles"][self.map[x][y]])
+                if self.map[x][y] == "#":
+                    self.screen.set_tile(x, y, random.choice([517, 518, 525, 527, 528]))
+                else:
+                    self.screen.set_tile(x, y, self.game["tiles"][self.map[x][y]])
 
         def add_player(self, player, x, y):
             player.x, player.y = x, y
