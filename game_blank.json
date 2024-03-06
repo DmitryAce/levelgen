@@ -8,6 +8,8 @@
   ],
   "tasks": [
   ],
+  "plot": [
+  ],
   "tileset": "tileset.json",
   "tiles": {
     " ": 0,

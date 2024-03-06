@@ -151,6 +151,7 @@ def main(seed):
     events = ["coins", "exit", "treasure"]
     gen_method = ["MazeBacktracker", "MazeGrowth", "NoDeadEnds"]
     N = random.randint(1, 3)
+
     plot = []
     task = []
 
@@ -197,6 +198,7 @@ def main(seed):
                 board[y][x] = ' '
 
     board, width, height = addwalls(board, width, height)
+    data_for_check = {}  # Создаем словарь для проверки решаемости
 
     # ---TILES---
     """Сделал чтобы можно было проверить определьные точки 
@@ -224,6 +226,7 @@ def main(seed):
     if "treasure" in plot:
         rooms = random.randint(1, 3)
         keys = rooms
+        data_for_check["keys"] = rooms
 
         # Функция для правильного склонения слова "сокровище"
         def format_treasures(count):
@@ -351,10 +354,10 @@ def main(seed):
             else:
                 continue
 
-
     # --COINS--
     if "coins" in plot:
         coins_goal = random.randint(10, 40)
+        data_for_check["coins"] = coins_goal
         task.append(
             f"Необходимо собрать {coins_goal} *.")
 
@@ -377,6 +380,7 @@ def main(seed):
         match mode:
             # Выход с рычагом
             case 1:
+                data_for_check["escape2"] = True
                 task.append(
                     f"Сбегите с локации. Чтобы активировать выход нужно переключить рычаг.")
 
@@ -398,6 +402,7 @@ def main(seed):
 
             # 1-3 Выхода, есть фейковые
             case 2:
+                data_for_check["escape1"] = True
                 exits = random.randint(1, 3)
                 while exits:
                     direction = random.randint(1, 4)
@@ -485,7 +490,7 @@ def main(seed):
         else:
             continue
 
-    return board, task, spawnpoint
+    return board, task, spawnpoint, data_for_check
 
 
 def make_variants(seed):
@@ -499,12 +504,13 @@ def make_variants(seed):
         lvl = -1
 
     lvl += 1
-    board, task, spawn_point = main(seed)
+    board, task, spawn_point, dat = main(seed)
     formatted_board = [''.join(sublist) for sublist in board]
 
     data["maps"].append(formatted_board)
     data["tasks"].append(' '.join(task))
     data["levels"].append({"map": lvl, "steps": 10000, "start": spawn_point})
+    data["plot"].append(dat)
 
     # Сохраняем обновленные данные обратно в файл
     with open('game.json', 'w', encoding='utf-8') as f:  # Указываем кодировку UTF-8
@@ -591,7 +597,7 @@ def make_variants(seed):
     root.destroy()  # Закрытие окна Tkinter
 
     # Создаем файл Markdown
-    with open('output.md', 'a', encoding='utf-8') as f:
+    with open('README.md', 'a', encoding='utf-8') as f:
         f.write(f'# Вариант {lvl}')
         f.write("\n![map](maps/map_{}.png)\n\n    ".format(seed))
         f.write(" " + ' '.join(task) + "\n")
@@ -599,14 +605,16 @@ def make_variants(seed):
 
 
 if __name__ == '__main__':
-    seeds = [12457, 30984, 76521, 89014, 43210, 56789, 23456, 98765, 87654,
-             54321,
-             45678, 98701, 10293, 56780, 23401, 87543, 98102, 34567, 89012,
-             67890,
-             54309, 87621, 90876, 12345, 67801, 90123, 45601, 89034, 76123,
-             20897,
-             90128, 32098, 54987, 10987, 89765, 12389, 98732, 56098, 12890,
-             89076]
+    seeds = [12457, 30984, 76521]
+
+    # seeds = [12457, 30984, 76521, 89014, 43210, 56789, 23456, 98765, 87654,
+    #         54321,
+    #         45678, 98701, 10293, 56780, 23401, 87543, 98102, 34567, 89012,
+    #         67890,
+    #         54309, 87621, 90876, 12345, 67801, 90123, 45601, 89034, 76123,
+    #         20897,
+    #         90128, 32098, 54987, 10987, 89765, 12389, 98732, 56098, 12890,
+    #         89076]
 
     for seed in seeds:
         random = Rand(seed)
