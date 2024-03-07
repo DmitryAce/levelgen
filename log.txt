@@ -1,3 +1,1 @@
-12457  ['treasure', 'exit', 'coins'] - 3, NoDeadEnds
-30984  ['exit', 'treasure'] - 2, NoDeadEnds
 76521  ['treasure', 'exit', 'coins'] - 3, MazeBacktracker

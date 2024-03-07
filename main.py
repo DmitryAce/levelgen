@@ -402,8 +402,8 @@ def main(seed):
 
             # 1-3 Выхода, есть фейковые
             case 2:
-                data_for_check["escape1"] = True
                 exits = random.randint(1, 3)
+                data_for_check["escape1"] = exits
                 while exits:
                     direction = random.randint(1, 4)
 
@@ -484,7 +484,7 @@ def main(seed):
             if flag:
                 if board[y][x] == " ":
                     spawnpoint = [x, y]
-                    break;
+                    break
             else:
                 continue
         else:
@@ -605,7 +605,7 @@ def make_variants(seed):
 
 
 if __name__ == '__main__':
-    seeds = [12457, 30984, 76521]
+    seeds = [76521]
 
     # seeds = [12457, 30984, 76521, 89014, 43210, 56789, 23456, 98765, 87654,
     #         54321,
