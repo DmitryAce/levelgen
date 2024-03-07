@@ -24,7 +24,7 @@ def check_level(filename, cnt):
     # Подгружаем метаданные
     spawn = (game["levels"][cnt]["start"][0], game["levels"][cnt]["start"][1])
     board = [list(i) for i in game["maps"][cnt]]  # Board
-    plot = game["plot"][cnt]  # Plot - ЗАКОМЕНТИЛ ДЛЯ ТЕСТА
+    plot = game["plot"][cnt]
 
     # Проходимость уровня
     playability = True
