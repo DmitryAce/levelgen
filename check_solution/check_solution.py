@@ -2,12 +2,6 @@ import json
 from pathlib import Path
 
 
-def render(map, i):
-    print("\n===Game=== :", i)
-    for x in map:
-        print("".join(x))
-
-
 def bfs(board, source_point, point_type, restritions):
     queue, reached, parents = [source_point], {source_point}, {}
     while queue:
