@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 class State:
     def __init__(self, x, y, collected):
         self.x = x
@@ -7,17 +10,24 @@ class State:
 def is_goal_state(state, total_coins):
     return len(state.collected) == total_coins
 
-def go(board):
-    def func(state, direction):
+def act(board):
+    def func(state, action):
         new_x, new_y = state.x, state.y
-        if direction == 'up':
+        new_collected = state.collected.copy()
+        if action == 'up':
             new_y -= 1
-        elif direction == 'down':
+        elif action == 'down':
             new_y += 1
-        elif direction == 'left':
+        elif action == 'left':
             new_x -= 1
-        elif direction == 'right':
+        elif action == 'right':
             new_x += 1
+        elif action == "take":
+            if board[new_y][new_x] == '1' and ((new_x, new_y) not in state.collected):
+                new_collected.append((new_x, new_y))
+                new_collected = sorted(new_collected)
+            else:
+                return state
 
         if is_goal_state(State(state.x, state.y, state.collected), total_coins):
             return state
@@ -28,14 +38,11 @@ def go(board):
         if board[new_y][new_x] == '#':
             return state  # Столкновение со стеной
 
-        new_collected = state.collected.copy()
-        if board[new_y][new_x] == '1' and ((new_x, new_y) not in state.collected):
-            new_collected.append((new_x, new_y))
-            new_collected = sorted(new_collected)
 
         return State(new_x, new_y, new_collected)
 
     return func
+
 
 def make_model(board, start_state):
     graph = {}
@@ -45,8 +52,9 @@ def make_model(board, start_state):
         if key in graph:
             return
         graph[key] = []
-        for direction in ['up', 'down', 'left', 'right']:
-            new_state = go(board)(state, direction)
+
+        for action in ['up', 'down', 'left', 'right', 'take']:
+            new_state = act(board)(state, action)
             new_key = (new_state.x, new_state.y, tuple(new_state.collected))
             if new_state != state:
                 graph[key].append(new_key)
@@ -75,15 +83,17 @@ def make_graph(graph, start_key, output_file, total_coins):
         f.write('}')
 
 if __name__ == "__main__":
-    board = [
-        ['#', ' ', '1', ' ', '#'],
-        ['#', ' ', '#', ' ', '#'],
-        ['1', ' ', ' ', ' ', '1'],
-        ['#', ' ', '#', ' ', '#'],
-        ['#', ' ', '1', ' ', '#']
-    ]
+    filename = "game.json"
+    level_index = 6
+    game = json.loads(Path(filename).read_text())
+    level = game["levels"][level_index]  # фиксируем параметры уровня
+    data = game["maps"][level["map"]]  # фиксируем карту
+    cols, rows = len(data[0]), len(data)  # размеры с массива входной карты
+    board = [[data[y][x] for y in range(rows)] for x in range(cols)]  # превращаем карту в массив
+    print(board)
+    spawnx, spawny = game["levels"][level_index]["start"]
 
-    START_STATE = State(1, 0, [])
+    START_STATE = State(spawnx, spawny, [])
     total_coins = sum(row.count('1') for row in board)
 
     graph = make_model(board, START_STATE)
