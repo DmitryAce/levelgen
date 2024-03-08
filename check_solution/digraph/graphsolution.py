@@ -1,341 +1,156 @@
-import json
-from pathlib import Path
-import graphviz, math
+import graphviz
 
 
-collectables_dict = {
-        "1": "coin",
-        "k": "key",
-        "t": "treasure",
-        "l": "lever",
-        "E": "escaped",
-        "X": "escaped",
-        "d": "opened",
-        (1, 0): "right",
-        (0, 1): "down",
-        (-1, 0): "left",
-        (0, -1): "up",
-    }
+def go(room, key):
+    def func(state):
+        player = state['player']
+        if state[key] != player:
+            return state
+        if player == 'alice' and state['alice_room'] == 'red':
+            return state
+        if player == 'bob' and state['bob_room'] == 'blue':
+            return state
+        new_state = dict(state)
+        new_state[f"{player}_room"] = room
+        return new_state
 
-color_dict = {
-    "coin": "gold1",
-    "key": "darkslateblue",
-    "treasure": "goldenrod4",
-    "lever": "powderblue",
-    "opened": "peru",
-    "escaped": "green",
-    "right": "white",
-    "down": "white",
-    "left": "white",
-    "up": "white",
-    "fake": "red"
+    return func
+
+
+def switch_player(state):
+    if state['player'] == 'alice':
+        return dict(state, player='bob')
+    return dict(state, player='alice')
+
+
+def take(key):
+    def func(state):
+        if state['player'] == 'alice' and state[key] != state['alice_room']:
+            return state
+        if state['player'] == 'bob' and state[key] != state['bob_room']:
+            return state
+        new_state = dict(state)
+        new_state[key] = state['player']
+        return new_state
+
+    return func
+
+
+def give(key):
+    def func(state):
+        if state['alice_room'] != state['bob_room']:
+            return state
+        if state['player'] == 'alice' and state[key] != 'alice':
+            return state
+        if state['player'] == 'bob' and state[key] != 'bob':
+            return state
+        new_state = dict(state)
+        new_state[key] = 'alice' if state['player'] == 'bob' else 'bob'
+        return new_state
+
+    return func
+
+
+game = {
+    'red': dict(
+        down=go('west', 'red_key'),
+        give_red=give('red_key'),
+        give_blue=give('blue_key'),
+        give_green=give('green_key'),
+        switch=switch_player
+    ),
+    'blue': dict(
+        down=go('east', 'blue_key'),
+        give_red=give('red_key'),
+        give_blue=give('blue_key'),
+        give_green=give('green_key'),
+        switch=switch_player
+    ),
+    'west': dict(
+        up=go('red', 'red_key'),
+        right=go('east', 'green_key'),
+        take_red=take('red_key'),
+        take_blue=take('blue_key'),
+        take_green=take('green_key'),
+        give_red=give('red_key'),
+        give_blue=give('blue_key'),
+        give_green=give('green_key'),
+        switch=switch_player
+    ),
+    'east': dict(
+        up=go('blue', 'blue_key'),
+        left=go('west', 'green_key'),
+        take_red=take('red_key'),
+        take_blue=take('blue_key'),
+        take_green=take('green_key'),
+        give_red=give('red_key'),
+        give_blue=give('blue_key'),
+        give_green=give('green_key'),
+        switch=switch_player
+    )
 }
 
-def is_subset(sub_dict, main_dict):
-    for key, value in sub_dict.items():
-        if key not in main_dict or main_dict[key] != value:
-            return False
-    return True
 
-def find_coordinates(matrix, target):
-    for y, row in enumerate(matrix):
-        for x, value in enumerate(row):
-            if value == target:
-                return x, y
-    return None
-
-def find_all_coordinates(matrix, element):
-    e_coordinates = []
-    for y, row in enumerate(matrix):
-        for x, value in enumerate(row):
-            if isinstance(value, str) and value.lower() == element:
-                e_coordinates.append((x, y))
-    return e_coordinates
-
-def euclidean_distance(point1, point2):
-    x1, y1 = point1
-    x2, y2 = point2
-    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+def is_goal_state(s):
+    return ('alice_room', 'red') in s and ('bob_room', 'blue') in s
 
 
-def draw_graph(states, connections):
-    dot = graphviz.Digraph()
-    for state in states:
-        title = "X:"+str(state['x'])+"Y:"+str(state['y'])
-        dot.node(str(state['state']), label=title, style='filled', fillcolor=color_dict.get(state['action']), shape='circle')
+def get_current_room(state):
+    if state['player'] == 'alice':
+        return state['alice_room']
+    return state['bob_room']
 
-    for state in states:
-        dot.edge(str(state["parent"]), str(state["state"]), label=state["action"])
 
-    '''for k,v in connections.items():
-        action = [state["action"] for state in states if state["state"] == v][0]
-        dot.edge(str(k), str(v), label=action)'''
+def make_model(game, state):
+    graph = {}
+    print(frozenset(state.items()))
+    def rec(state):
+        key = frozenset(state.items())
+        graph[key] = []
+        for func in game[get_current_room(state)].values():
+            new_state = func(state)
+            if new_state != state:
+                new_key = frozenset(new_state.items())
+                if new_key not in graph[key]:
+                    graph[key].append(new_key)
+                if new_key not in graph:
+                    rec(new_state)
 
-    dot.render('game_graph', format='png', view=True)
+    rec(state)
+    return graph
 
-def bfs(board, states, collectables, win_req, EXITTYPE, spawnpoint):
-    queue, reached, connections = [states[0]], [states[0]], {}
 
-    STATECNT = 0
-    while queue:
-        current = queue.pop(0)
-        reached.append(current)
-        print(current["state"], "CORDS: ", current["x"], current["y"])
-        x = current['x']
-        y = current['y']
-        coins = current['coins']
-        keys = current['keys']
-        lever = current['lever']
-        treasures = current['treasures']
-        escaped = current['escaped']
-
-        # КОНЕЦ
-        if board[y][x] == "E" and is_subset(win_req, current):
-            coords = find_all_coordinates(board, "E")
-            distances = [euclidean_distance((spawnpoint[0], spawnpoint[1]), point) for point in coords]
-            farthest_exit = coords[distances.index(max(distances))]
-
-            if farthest_exit == (x, y):
-                STATECNT += 1
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': "fake",
-                    'x': x,
-                    'y': y,
-                    'coins': coins,
-                    'keys': keys,
-                    'treasures': treasures,
-                    'lever': lever,
-                    'escaped': True,
-                }
-                states.append(cur_state)
-                reached.append(cur_state)
-                connections[current['state']] = STATECNT
-                continue
+def make_graph(graph, start_key, output_file):
+    dead_ends = []  # find_dead_ends(graph) TODO
+    with open(output_file, 'w') as f:
+        f.write('digraph {\n')
+        graph_keys = list(graph.keys())
+        for x in graph:
+            n = graph_keys.index(x)
+            if x == start_key:
+                f.write(f'n{n} [style="filled",fillcolor="dodgerblue",shape="circle"]\n')
+            elif is_goal_state(x):
+                f.write(f'n{n} [style="filled",fillcolor="green",shape="circle"]\n')
+            elif x in dead_ends:
+                f.write(f'n{n} [style="filled",fillcolor="red",shape="circle"]\n')
             else:
-                STATECNT += 1
-                board[y][x] = " "
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get("E"),
-                    'x': x,
-                    'y': y,
-                    'coins': coins,
-                    'keys': keys,
-                    'treasures': treasures,
-                    'lever': lever,
-                    'escaped': escaped,
-                }
-                states.append(cur_state)
-                queue.append(cur_state)
-                reached.append(cur_state)
-                connections[current['state']] = STATECNT
-                continue
-
-        if board[y][x] == "X" and is_subset(win_req, current):
-            STATECNT += 1
-            cur_state = {
-                'state': STATECNT,
-                'parent': current['state'],
-                'action': collectables_dict.get("X"),
-                'x': x,
-                'y': y,
-                'coins': coins,
-                'keys': keys,
-                'treasures': treasures,
-                'lever': lever,
-                'escaped': True,
-            }
-            states.append(cur_state)
-            reached.append(cur_state)
-            connections[current['state']] = STATECNT
-            continue
-
-        if is_subset(win_req, current) and EXITTYPE == 0:
-            STATECNT += 1
-            cur_state = {
-                'state': STATECNT,
-                'parent': current['state'],
-                'action': 'escaped',
-                'x': x,
-                'y': y,
-                'coins': coins,
-                'keys': keys,
-                'treasures': treasures,
-                'lever': lever,
-                'escaped': True,
-            }
-            states.append(cur_state)
-            reached.append(cur_state)
-            connections[current['state']] = STATECNT
-            continue
-
-        # Если в состоянии есть что подобрать
-        if board[y][x] in collectables:
-            STATECNT += 1
-            loot = board[y][x]
-            if board[y][x] == "1":
-                board[y][x] = " "
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get(loot),
-                    'x': x,
-                    'y': y,
-                    'coins': coins+1,
-                    'keys': keys,
-                    'treasures': treasures,
-                    'lever': lever,
-                    'escaped': escaped,
-                }
-            elif board[y][x] == "k":
-                board[y][x] = " "
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get(loot),
-                    'x': x,
-                    'y': y,
-                    'coins': coins,
-                    'keys': keys+1,
-                    'treasures': treasures,
-                    'lever': lever,
-                    'escaped': escaped,
-                }
-            elif board[y][x] == "t":
-                board[y][x] = " "
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get(loot),
-                    'x': x,
-                    'y': y,
-                    'coins': coins,
-                    'keys': keys,
-                    'treasures': treasures+1,
-                    'lever': lever,
-                    'escaped': escaped,
-                }
-            elif board[y][x] == "d":
-                board[y][x] = " "
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get(loot),
-                    'x': x,
-                    'y': y,
-                    'coins': coins,
-                    'keys': keys-1,
-                    'treasures': treasures,
-                    'lever': lever,
-                    'escaped': escaped,
-                }
-            elif board[y][x] == "l":
-                board[y][x] = "L"
-
-                x1, y1 = find_coordinates(board, "x")
-                board[y1][x1] = "X"
-
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get(loot),
-                    'x': x,
-                    'y': y,
-                    'keys': keys,
-                    'treasures': treasures,
-                    'lever': True,
-                    'escaped': escaped,
-                }
-
-            states.append(cur_state)
-            queue.append(cur_state)
-            connections[current['state']] = STATECNT
-            continue
+                f.write(f'n{n} [shape="circle"]\n')
+        for x in graph:
+            n1 = graph_keys.index(x)
+            for y in graph[x]:
+                n2 = graph_keys.index(y)
+                f.write(f'n{n1} -> n{n2}\n')
+        f.write('}')
 
 
-        # Окрестность фон Неймана
-        for dx, dy in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
-            new_state = {
-                'x': x+dx,
-                'y': y+dy,
-                'coins': coins,
-                'keys': keys,
-                'treasures': treasures,
-                'lever': lever,
-                'escaped': escaped,
-            }
-            p = board[new_state['y']][new_state['x']]
-            if p == "#" or (p == "d" and new_state['keys'] == 0):
-                continue
+if __name__ == "__main__":
+    START_STATE = dict(
+        player='alice',
+        alice_room='west',
+        bob_room='east',
+        red_key='east',
+        blue_key='west',
+        green_key='east'
+    )
 
-            exist = False
-
-            for r in reached:
-                if is_subset(new_state, r):
-                    exist = True
-                    break
-
-            if exist:
-                continue
-
-            if 0 <= new_state['y'] < len(board) and 0 <= new_state['x'] < len(board[0]):
-                STATECNT += 1
-                cur_state = {
-                    'state': STATECNT,
-                    'parent': current['state'],
-                    'action': collectables_dict.get((dx, dy)),
-                    'x': x+dx,
-                    'y': y+dy,
-                    'coins': coins,
-                    'keys': keys,
-                    'treasures': treasures,
-                    'lever': lever,
-                    'escaped': escaped,
-                }
-                states.append(cur_state)
-                queue.append(cur_state)
-                connections[current['state']] = STATECNT
-    return states, connections
-
-
-def mk_graph(filename, cnt):
-    game = json.loads(Path(filename).read_text())
-
-    # Данные зависящие от игры
-    collectables = ["1", "k", "t", "l", "d"]
-    actions = ["take", "up", "down", "left", "right"]
-    win_req = game["win_req"][cnt]
-    EXITTYPE = game["exit_type"][cnt]
-    spawnpoint = game["levels"][cnt]["start"]
-
-    states = [ ]
-
-    # Подгружаем метаданные
-    spawn = (game["levels"][cnt]["start"][0], game["levels"][cnt]["start"][1])
-    board = [list(i) for i in game["maps"][cnt]]  # Board
-    plot = game["plot"][cnt]
-
-    states.append({
-        'state': 0,
-        'parent': 0,
-        'action': "init",
-        'x': spawn[0],
-        'y': spawn[1],
-        'coins': 0,
-        'keys': 0,
-        'treasures': 0,
-        'lever': False,
-        'escaped': 0,
-    })
-
-    states, connections = bfs(board, states, collectables, win_req, EXITTYPE, spawnpoint)
-    print(states)
-    draw_graph(states, connections)
-    return "Завершено."
-
-if __name__ == '__main__':
-    for i in range(1):
-        print(f"Уровень {i+1} :", mk_graph("game.json", i))
+    make_graph(make_model(game, START_STATE), START_STATE, "graph.txt")
