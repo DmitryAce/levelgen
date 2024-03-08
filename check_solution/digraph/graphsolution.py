@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-import graphviz
 
 class State:
     def __init__(self, x, y, collected):
@@ -66,31 +63,23 @@ def make_model(board, start_state):
 
 
 def make_graph(graph, start_key, output_file, total_coins):
-    dot_string = 'digraph {\n'
-    graph_keys = list(graph.keys())
+    with open(output_file, 'w') as f:
+        f.write('digraph {\n')
+        graph_keys = list(graph.keys())
+        for idx, key in enumerate(graph_keys):
+            x, y, collected = key
+            if key == start_key:
+                f.write(f'n{idx} [label="X:{x} Y:{y} C:{collected}", style="filled",fillcolor="dodgerblue",shape="circle"]\n')
+            elif is_goal_state(State(x, y, list(collected)), total_coins):  # Преобразуем кортеж обратно в список
+                f.write(f'n{idx} [label="X:{x} Y:{y} C:{collected}", style="filled",fillcolor="green",shape="circle"]\n')
+            else:
+                f.write(f'n{idx} [label="X:{x} Y:{y} C:{collected}", shape="circle"]\n')
 
-    for idx, key in enumerate(graph_keys):
-        x, y, collected = key
-        if key == start_key:
-            dot_string += f'n{idx} [label="X:{x} Y:{y} C:{collected}", style="filled",fillcolor="dodgerblue",shape="circle"]\n'
-        elif is_goal_state(State(x, y, list(collected)), total_coins):
-            dot_string += f'n{idx} [label="X:{x} Y:{y} C:{collected}", style="filled",fillcolor="green",shape="circle"]\n'
-        else:
-            dot_string += f'n{idx} [label="X:{x} Y:{y} C:{collected}", shape="circle"]\n'
-
-    for idx, key in enumerate(graph_keys):
-        for new_key in graph[key]:
-            new_idx = graph_keys.index(new_key)
-            dot_string += f'n{idx} -> n{new_idx}\n'
-
-    dot_string += '}'
-
-    # Создаем объект графа
-    g = graphviz.Source(dot_string)
-    g.format = 'svg'
-
-    # Сохраняем граф в SVG файл
-    g.render(output_file)
+        for idx, key in enumerate(graph_keys):
+            for new_key in graph[key]:
+                new_idx = graph_keys.index(new_key)
+                f.write(f'n{idx} -> n{new_idx}\n')
+        f.write('}')
 
 if __name__ == "__main__":
     board = [
@@ -134,8 +123,8 @@ if __name__ == "__main__":
          '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#']
     ]
 
-    START_STATE = State(1, 2, [])
+    START_STATE = State(5, 17, [])
     total_coins = sum(row.count('1') for row in board)
-
+    print(total_coins)
     graph = make_model(board, START_STATE)
-    make_graph(graph, tuple((START_STATE.x, START_STATE.y, ())), "output_graph.svg", total_coins)
+    make_graph(graph, tuple((START_STATE.x, START_STATE.y, ())), "graph.txt", total_coins)
