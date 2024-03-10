@@ -54,8 +54,10 @@ def make_model(board, start_state):
             new_state = act(board)(state, action)
             new_key = (new_state.x, new_state.y, tuple(new_state.collected))
             if new_state != state:
-                graph[key].append(new_key)
-                rec(new_state)
+                if new_key not in graph[key]:
+                    graph[key].append(new_key)
+                if new_key not in graph:
+                    rec(new_state)
 
     rec(start_state)
     return graph
