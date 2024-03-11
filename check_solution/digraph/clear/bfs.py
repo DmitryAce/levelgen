@@ -1,6 +1,7 @@
 from collections import namedtuple
-import graphviz
-
+import graphviz, json
+from pathlib import Path
+import time
 
 def make_model(graph, start_state, is_goal, actions):
     queue = [start_state]
@@ -69,18 +70,30 @@ def make_dandybot_model(board, start, is_goal):
 
 
 if __name__ == '__main__':
-    board = [
-        ['#', ' ', '1'],
-        ['#', ' ', '#'],
-        ['1', ' ', ' '],
-        ['#', ' ', '#'],
-        ['#', ' ', '1']
-    ]
+    filename = "game.json"
+    level_index = 0
+    game = json.loads(Path(filename).read_text())
+    level = game["levels"][level_index]  # фиксируем параметры уровня
+    data = game["maps"][level["map"]]  # фиксируем карту
+    cols, rows = len(data[0]), len(data)  # размеры с массива входной карты
+    board = [[data[y][x] for y in range(rows)] for x in range(cols)]  # превращаем карту в массив
+    for i in board:
+        print(i)
+    print(level)
+    spawnx, spawny = game["levels"][level_index]["start"]
 
     def is_goal(state):
         return len(state.collected) == sum(row.count('1') for row in board)
 
-    start = State(2, 2, frozenset())
+    start = State(spawnx, spawny, frozenset())
+
+    start_time = time.time()
     graph = make_dandybot_model(board, start, is_goal)
+    end_time = time.time()
+
     print(len(graph))
+    execution_time = end_time - start_time  # вычисление времени выполнения
+    print(f"Время выполнения: {execution_time} секунд")
+
     draw_model(graph, start, is_goal)
+

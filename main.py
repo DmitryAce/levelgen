@@ -159,8 +159,7 @@ def main(seed):
     gen_method = random.choice(gen_method)
     width = random.randint(16, 22)
     height = width
-
-    filename = 'board.txt'  # Имя файла для сохранения карты
+    
     coin_chance = random.uniform(0.4, 0.7)
 
     board = [['B' for _ in range(width)] for _ in range(height)]
@@ -356,7 +355,8 @@ def main(seed):
 
     # --COINS--
     if "coins" in plot:
-        coins_goal = random.randint(10, 40)
+        total_space = sum(row.count(' ') for row in board)
+        coins_goal = random.randint(int(total_space*0.10), int(total_space*0.20))
         data_for_check["coins"] = coins_goal
         task.append(
             f"Необходимо собрать {coins_goal} *.")
@@ -605,7 +605,7 @@ def make_variants(seed):
 
 
 if __name__ == '__main__':
-    seeds = [76521]
+    seeds = [71,346234,12346713,451343246,13461]
 
     # seeds = [12457, 30984, 76521, 89014, 43210, 56789, 23456, 98765, 87654,
     #         54321,

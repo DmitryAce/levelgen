@@ -1,1 +1,5 @@
-76521  ['treasure', 'exit', 'coins'] - 3, MazeBacktracker
+71  ['exit'] - 1, MazeGrowth
+346234  ['exit', 'coins'] - 2, NoDeadEnds
+12346713  ['coins', 'exit'] - 2, MazeGrowth
+451343246  ['treasure', 'exit', 'coins'] - 3, MazeBacktracker
+13461  ['treasure', 'coins'] - 2, NoDeadEnds

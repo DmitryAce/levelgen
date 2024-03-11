@@ -97,5 +97,11 @@ def check_level(filename, cnt):
 
 
 if __name__ == '__main__':
-    for i in range(12):
-        print(f"Уровень {i+1} :", check_level("game.json", i))
+    TESTS = [{"ИКБО-03-22": [list(range(40)), list(range(40))]}]
+    GROUPS, TASKS = ["ИКБО-03-22"], [0, 1]
+
+
+    def check_solution(group, task, variant, difficulty, code):
+        if "42" in code:
+            return True, ""
+        return False, "An error has occured."
