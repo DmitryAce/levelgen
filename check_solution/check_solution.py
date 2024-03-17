@@ -1,6 +1,56 @@
 import json, time
 from pathlib import Path
+import copy
 
+movements_dict = {
+    "set1": {
+        "go_north": (0,-1),
+        "go_south": (0,1),
+        "go_east": (1,0),
+        "go_west": (-1,0),
+    },
+    "set2": {
+        "up": (0,-1),
+        "down": (0,1),
+        "left": (-1,0),
+        "right":  (1,0),
+    },
+    "set3": {
+        "go_up": (0,-1),
+        "go_down": (0,1),
+        "go_right": (1,0),
+        "go_left": (-1,0),
+    },
+    "set4": {
+        "rotate_right_90": "-",
+        "rotate_left_90": "-",
+        "rotate_180": "-",
+        "go": "-",
+    },
+}
+
+actions_dict = {
+    "set1": {
+            "take": "take",
+            "pull_lever": "pull",
+            "open_door":"open"
+    },
+    "set2": {
+            "pick_up": "take",
+            "pull_lever": "pull",
+            "open_door": "open"
+        },
+    "set3": {
+            "collect": "take",
+            "pull_lever": "pull",
+            "open_door": "open"
+        },
+    "set4": {
+            "take": "take",
+            "pull_lever": "pull",
+            "open_door": "open"
+        },
+}
 
 def xorshift32(x):
     x ^= x << 13
@@ -18,6 +68,9 @@ class Rand:
     def random(self):
         self.seed = self.algo(self.seed)
         return self.seed
+
+    def set_seed(self, seed):
+        self.seed = seed
 
     def randint(self, low, high):
         return low + self.random() % (high - low + 1)
@@ -111,20 +164,33 @@ def addwalls(board, sizex, sizey):
     return board, sizex, sizey
 
 
-def main(seed):
+def main(seed, difficulty, shift):
+    for i in range(shift):
+        random.random()
+
     events = ["coins", "exit", "treasure"]
     gen_method = ["MazeBacktracker", "MazeGrowth", "NoDeadEnds"]
-    N = random.randint(1, 3)
-
     plot = []
     task = []
 
-    # ---MAP---
+    # --- RANDOM GAMEPLAY ---
+    N = difficulty
     gen_method = random.choice(gen_method)
-    width = random.randint(16, 22)
-    height = width
+    width = N*8
+    match N:
+        case 1:
+            coin_chance = 0.5
+        case 2:
+            coin_chance = 0.35
+        case 3:
+            coin_chance = 0
+    player_set = random.randint(1, 4)
+    rooms = N
 
-    coin_chance = random.uniform(0.4, 0.7)
+
+    # ---MAP---
+
+    height = width
 
     board = [['B' for _ in range(width)] for _ in range(height)]
 
@@ -180,14 +246,11 @@ def main(seed):
                 break
 
     print(seed, " ", plot, " - ", N, ", ", gen_method)
-    with open("log.txt", "a") as file:
-        file.write(f"{seed}  {plot} - {N}, {gen_method}\n")
 
     # --TREASURES--
     # Создаем комнаты
     treasure_coordinates = []
     if "treasure" in plot:
-        rooms = random.randint(1, 3)
         keys = rooms
         data_for_check["keys"] = rooms
 
@@ -326,7 +389,7 @@ def main(seed):
             f"Необходимо собрать {coins_goal} *.")
 
         # Увеличиваем кол-во монет на карте, чтобы боло с запасом
-        coins_goal += int(coin_chance * coins_goal)
+        coins_goal += int(coins_goal * coin_chance)
 
         while coins_goal:
             x = random.randint(0, width - 1)
@@ -454,7 +517,7 @@ def main(seed):
         else:
             continue
 
-    return board, task, spawnpoint, data_for_check
+    return board, task, spawnpoint, data_for_check, player_set
 
 
 def bfs(board, source_point, point_type, restritions):
@@ -474,13 +537,8 @@ def bfs(board, source_point, point_type, restritions):
     return []
 
 
-def check_level(filename, cnt):
-    game = json.loads(Path(filename).read_text())
-
-    # Подгружаем метаданные
-    spawn = (game["levels"][cnt]["start"][0], game["levels"][cnt]["start"][1])
-    board = [list(i) for i in game["maps"][cnt]]  # Board
-    plot = game["plot"][cnt]
+def check_level(board, spawn, plot):
+    spawn = tuple(spawn)
 
     # Проходимость уровня
     playability = True
@@ -552,12 +610,82 @@ def check_level(filename, cnt):
     return playability
 
 
+def check_solution(random, seed, difficulty, code):
+    random.set_seed(seed)
+    shift = 0
+    board, task, spawnpoint, data_for_check, player_set = main(seed, difficulty, shift)
+    board_temp = copy.deepcopy(board)
+
+    playability = not (check_level(board_temp, spawnpoint, data_for_check))
+
+    print("INIT: ")
+    for i in board:
+        print(i)
+    print(data_for_check)
+
+    # Если уровень невалиден, то запускаем генерацию заново
+    while playability:
+        shift += 100
+        board, task, spawnpoint, data_for_check, player_set = main(seed, difficulty, shift)
+        board_temp = copy.deepcopy(board)
+        playability = not (check_level(board_temp, spawnpoint, data_for_check))
+
+    print("\nSHIFT: ", shift, spawnpoint)
+    for i in board:
+        print('"'+"".join(i)+'",',)
+    print(data_for_check)
+
+    # Проверка скрипта студента
+    player_pos = spawnpoint
+    turns = 10000
+    directions = ["up", "right", "down", "left"]
+    direction = 1
+    player_keys = 0
+
+    while turns:
+        turns -= 1
+        act = play_game(board,  player_pos)
+
+        if player_set == 4:
+            match act:
+                case "rotate_right_90":
+                    direction = (direction + 1) % 4
+                case "rotate_left_90":
+                    direction = (direction - 1) % 4
+                case "rotate_180":
+                    direction = (direction + 2) % 4
+                case "go":
+                    if  (0 < player_pos[0] + movements_dict["set1"][directions[direction]][0] < len(board[0])) and (0 < player_pos[0] + movements_dict["set1"][directions[direction]][1] < len(board)):
+                        player_pos[0] += movements_dict["set1"][directions[direction]][0]
+                        player_pos[1] += movements_dict["set1"][directions[direction]][1]
+                        if board[player_pos[1]][player_pos[0]] == "#" or (board[player_pos[1]][player_pos[0]] == "d" and player_keys == 0) :
+                            player_pos[0] -= movements_dict["set1"][directions[direction]][0]
+                            player_pos[1] -= movements_dict["set1"][directions[direction]][1]
+                case "take":
+                case "pull_lever":
+                case "open_door":
+        else:
+            if act == actions_dict["set"+str(player_set)]:
+                pos_y -= 1
+            elif act == movements_dict["set"+str(player_set)]:
+                pos_x += 1
+            elif act == "down":
+                pos_y += 1
+            elif act == "left":
+                pos_x -= 1
+            else:
+                break
+def play_game():
+    return "left"
+
 if __name__ == '__main__':
     TESTS = [{"ИКБО-03-22": [list(range(40)), list(range(40))]}]
     GROUPS, TASKS = ["ИКБО-03-22"], [0, 1]
+    random = Rand(1)
 
+    '''
+        На входе было group, task, variant - Но немного не понимаю зачем нам это в функцию передавать
+    '''
 
-    def check_solution(group, task, variant, difficulty, code):
-        seed = 2453
-        random = Rand(seed)
-        main(seed)
+    check_solution(random, 125, 1, "")
+

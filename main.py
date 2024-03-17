@@ -3,7 +3,6 @@ import sys
 import json
 from importlib import import_module
 from pathlib import Path
-from random import randrange, shuffle
 import tkinter as tk
 from plitk import load_tileset, PliTk
 from plitk import save_canvas
@@ -148,19 +147,22 @@ def addwalls(board, sizex, sizey):
 
 
 def main(seed):
+    random.seed(seed)
+
     events = ["coins", "exit", "treasure"]
     gen_method = ["MazeBacktracker", "MazeGrowth", "NoDeadEnds"]
-    N = random.randint(1, 3)
-
     plot = []
     task = []
 
-    # ---MAP---
+    # --- RANDOM GAMEPLAY ---
+    N = random.randint(1, 3)
     gen_method = random.choice(gen_method)
     width = random.randint(16, 22)
-    height = width
-    
     coin_chance = random.uniform(0.4, 0.7)
+
+    # ---MAP---
+
+    height = width
 
     board = [['B' for _ in range(width)] for _ in range(height)]
 
@@ -532,7 +534,6 @@ def make_variants(seed):
             for i, name in enumerate(self.game["players"]):
                 tile = self.game["tiles"]["@"][i]
                 self.players.append(Player(name, [""], self, tile))
-            shuffle(self.players)
 
         def load_level(self):  # загрузка уровня!
             self.gold = 0  # обнуляемся
