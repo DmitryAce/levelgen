@@ -2,54 +2,50 @@ import json, time
 from pathlib import Path
 import copy
 
-movements_dict = {
-    "set1": {
-        "go_north": (0,-1),
-        "go_south": (0,1),
-        "go_east": (1,0),
-        "go_west": (-1,0),
-    },
-    "set2": {
-        "up": (0,-1),
-        "down": (0,1),
-        "left": (-1,0),
-        "right":  (1,0),
-    },
-    "set3": {
-        "go_up": (0,-1),
-        "go_down": (0,1),
-        "go_right": (1,0),
-        "go_left": (-1,0),
-    },
-    "set4": {
-        "rotate_right_90": "-",
-        "rotate_left_90": "-",
-        "rotate_180": "-",
-        "go": "-",
-    },
+move = {
+    "up": (0,-1),
+    "down": (0,1),
+    "right": (1,0),
+    "left": (-1,0),
 }
 
 actions_dict = {
     "set1": {
-            "take": "take",
-            "pull_lever": "pull",
-            "open_door":"open"
+        "go_north": "up",
+        "go_south": "down",
+        "go_east": "right",
+        "go_west": "left",
+        "take": "take",
+        "pull_lever": "pull",
+        "escape": "escape"
     },
     "set2": {
-            "pick_up": "take",
-            "pull_lever": "pull",
-            "open_door": "open"
-        },
+        "up": "up",
+        "down": "down",
+        "left": "left",
+        "right":  "right",
+        "pick_up": "take",
+        "pull_lever": "pull",
+        "exit": "escape"
+    },
     "set3": {
-            "collect": "take",
-            "pull_lever": "pull",
-            "open_door": "open"
-        },
+        "go_up": "up",
+        "go_down": "down",
+        "go_right": "right",
+        "go_left": "left",
+        "collect": "take",
+        "pull_lever": "pull",
+        "leave": "escape"
+    },
     "set4": {
-            "take": "take",
-            "pull_lever": "pull",
-            "open_door": "open"
-        },
+        "north": "up",
+        "south": "down",
+        "east": "right",
+        "west": "left",
+        "take": "take",
+        "pull_lever": "pull",
+        "depart": "escape"
+    },
 }
 
 def xorshift32(x):
@@ -164,7 +160,7 @@ def addwalls(board, sizex, sizey):
     return board, sizex, sizey
 
 
-def main(seed, difficulty, shift):
+def map_generator(seed, difficulty, shift):
     for i in range(shift):
         random.random()
 
@@ -610,10 +606,11 @@ def check_level(board, spawn, plot):
     return playability
 
 
-def check_solution(random, seed, difficulty, code):
+def check_solution(group, task, variant, code):
+    seed = sum([ord(i) for i in list(group)]) + task + variant
     random.set_seed(seed)
     shift = 0
-    board, task, spawnpoint, data_for_check, player_set = main(seed, difficulty, shift)
+    board, task, spawnpoint, data_for_check, player_set = map_generator(seed, difficulty, shift)
     board_temp = copy.deepcopy(board)
 
     playability = not (check_level(board_temp, spawnpoint, data_for_check))
@@ -626,7 +623,7 @@ def check_solution(random, seed, difficulty, code):
     # Если уровень невалиден, то запускаем генерацию заново
     while playability:
         shift += 100
-        board, task, spawnpoint, data_for_check, player_set = main(seed, difficulty, shift)
+        board, task, spawnpoint, data_for_check, player_set = map_generator(seed, difficulty, shift)
         board_temp = copy.deepcopy(board)
         playability = not (check_level(board_temp, spawnpoint, data_for_check))
 
@@ -638,58 +635,86 @@ def check_solution(random, seed, difficulty, code):
     # Проверка скрипта студента
     player_pos = spawnpoint
     turns = 10000
-    directions = ["up", "right", "down", "left"]
-    direction = 1
     player_keys = 0
+    coins = 0
+    treasures = 0
+    opened = 0
+    escaped = 0
 
     while turns:
+        if escaped:
+            break
         turns -= 1
-        act = play_game(board,  player_pos)
+        if not play_game(board,  player_pos) in actions_dict["set"+str(player_set)]:
+            # Здесь можно уведомлять что неверное действие
+            continue
+        act = actions_dict["set"+str(player_set)][play_game(board,  player_pos)]
+        type = board[player_pos[1]][player_pos[0]]
 
-        if player_set == 4:
-            match act:
-                case "rotate_right_90":
-                    direction = (direction + 1) % 4
-                case "rotate_left_90":
-                    direction = (direction - 1) % 4
-                case "rotate_180":
-                    direction = (direction + 2) % 4
-                case "go":
-                    if  (0 < player_pos[0] + movements_dict["set1"][directions[direction]][0] < len(board[0])) and (0 < player_pos[0] + movements_dict["set1"][directions[direction]][1] < len(board)):
-                        player_pos[0] += movements_dict["set1"][directions[direction]][0]
-                        player_pos[1] += movements_dict["set1"][directions[direction]][1]
-                        if board[player_pos[1]][player_pos[0]] == "#" or (board[player_pos[1]][player_pos[0]] == "d" and player_keys == 0) :
-                            player_pos[0] -= movements_dict["set1"][directions[direction]][0]
-                            player_pos[1] -= movements_dict["set1"][directions[direction]][1]
-                case "take":
-                case "pull_lever":
-                case "open_door":
-        else:
-            if act == actions_dict["set"+str(player_set)]:
-                pos_y -= 1
-            elif act == movements_dict["set"+str(player_set)]:
-                pos_x += 1
-            elif act == "down":
-                pos_y += 1
-            elif act == "left":
-                pos_x -= 1
+        match act:
+            case "take":
+                match type:
+                    case "k":
+                        player_keys += 1
+                        board[player_pos[1]][player_pos[0]] = " "
+                        continue
+                    case "1":
+                        coins += 1
+                        board[player_pos[1]][player_pos[0]] = " "
+                        continue
+                    case "t":
+                        treasures += 1
+                        board[player_pos[1]][player_pos[0]] = " "
+                        continue
+                continue
+            case "pull":
+                match type:
+                    case "x":
+                        board[player_pos[1]][player_pos[0]] = "X"
+                        opened += 1
+                        continue
+                continue
+            case "escape":
+                match type:
+                    case "E":
+                        # Просчитать какие выходы фейковые если > 1
+                        escaped = 1
+                        continue
+                    case "L":
+                        if opened:
+                            escaped = 1
+                        continue
+                continue
+
+        # Движение
+        if (board[player_pos[1]+move[act][1]][player_pos[0]+move[act][0]] != "#"  and  0 <= player_pos[0] +
+            move[act][0] <= len(board[0])) and  0 <= player_pos[1]+move[act][1] <= len(board):
+            if (board[player_pos[1]+move[act][1]][player_pos[0]+move[act][0]] == "d"):
+                if player_keys:
+                    player_keys -= 1
+                    board[player_pos[1]+move[act][1]][player_pos[0]+move[act][0]] = " "
+                    player_pos = (player_pos[0]+move[act][0], player_pos[1]+move[act][1])
+                else:
+                    continue
             else:
-                break
-def play_game():
+                player_pos = (player_pos[0] + move[act][0], player_pos[1] + move[act][1])
+        else:
+            continue
+
+    win = True
+
+
+def play_game(board,  player_pos):
     return "left"
+
+difficulty = 1
+random = Rand(1)
 
 if __name__ == '__main__':
     TESTS = [{"ИКБО-03-22": [list(range(40)), list(range(40))]}]
     GROUPS, TASKS = ["ИКБО-03-22"], [0, 1]
-    random = Rand(1)
 
-    '''
-      От того что скинуто код менять нельзя,
-      Сложность необходимо вынести за пределы функции как константу пока
-      Сид зависит от group и variant
-      
-      Касательно графа нужно сделать чтобы монеты собирались без учета порядка.
-    '''
+    check_solution("ИКБО-03-22", 13, 4, "left")
 
-    check_solution(random, 125, 1, "")
+
 
