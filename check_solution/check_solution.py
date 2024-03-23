@@ -637,6 +637,10 @@ def check_solution(group, task, variant, code):
         board_temp = copy.deepcopy(board)
         playability = not (check_level(board_temp, spawnpoint, data_for_check))
 
+    for h in board:
+        print('"'+''.join(h)+'",')
+    print("spawnpoint = "+str(spawnpoint))
+
     # Проверка скрипта студента
     player_pos = spawnpoint
     turns = 10000
@@ -715,7 +719,6 @@ def check_solution(group, task, variant, code):
         if escaped != 1: win = False
     if "treasure" in data_for_check:
         if treasures != int(data_for_check["treasure"]): win = False
-
     return win
 
 def play_game(board, player_pos):
