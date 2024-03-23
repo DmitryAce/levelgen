@@ -606,6 +606,21 @@ def check_level(board, spawn, plot):
     return playability
 
 
+def find_E_locations(grid, start):
+    distances = {}
+    a_x, a_y = start
+
+    for i in range(len(grid)):
+        for j in range(len(grid[0])):
+            if grid[i][j] == 'E':
+                distance = abs(a_x - i) + abs(a_y - j)
+                distances[(i, j)] = distance
+
+    sorted_distances = sorted(distances.items(), key=lambda x: x[1], reverse=True)
+    return sorted_distances
+
+
+
 def check_solution(group, task, variant, code):
     seed = sum([ord(i) for i in list(group)]) + task + variant
     random.set_seed(seed)
@@ -615,22 +630,12 @@ def check_solution(group, task, variant, code):
 
     playability = not (check_level(board_temp, spawnpoint, data_for_check))
 
-    print("INIT: ")
-    for i in board:
-        print(i)
-    print(data_for_check)
-
     # Если уровень невалиден, то запускаем генерацию заново
     while playability:
         shift += 100
         board, task, spawnpoint, data_for_check, player_set = map_generator(seed, difficulty, shift)
         board_temp = copy.deepcopy(board)
         playability = not (check_level(board_temp, spawnpoint, data_for_check))
-
-    print("\nSHIFT: ", shift, spawnpoint)
-    for i in board:
-        print('"'+"".join(i)+'",',)
-    print(data_for_check)
 
     # Проверка скрипта студента
     player_pos = spawnpoint
@@ -645,7 +650,7 @@ def check_solution(group, task, variant, code):
         if escaped:
             break
         turns -= 1
-        if not play_game(board,  player_pos) in actions_dict["set"+str(player_set)]:
+        if not play_game(board, player_pos) in actions_dict["set"+str(player_set)]:
             # Здесь можно уведомлять что неверное действие
             continue
         act = actions_dict["set"+str(player_set)][play_game(board,  player_pos)]
@@ -669,18 +674,20 @@ def check_solution(group, task, variant, code):
                 continue
             case "pull":
                 match type:
-                    case "x":
-                        board[player_pos[1]][player_pos[0]] = "X"
+                    case "l":
+                        board[player_pos[1]][player_pos[0]] = "L"
                         opened += 1
                         continue
                 continue
             case "escape":
                 match type:
                     case "E":
-                        # Просчитать какие выходы фейковые если > 1
+                        # Проверка на ложные выходы
+                        if len(find_E_locations(board, spawnpoint)) > 1 and player_pos != find_E_locations(board, spawnpoint)[0][0]:
+                            return False
                         escaped = 1
                         continue
-                    case "L":
+                    case "x":
                         if opened:
                             escaped = 1
                         continue
@@ -702,12 +709,23 @@ def check_solution(group, task, variant, code):
             continue
 
     win = True
+    if "coins" in data_for_check:
+        if coins < int(data_for_check["coins"]): win = False
+    if "exit" in data_for_check:
+        if escaped != 1: win = False
+    if "treasure" in data_for_check:
+        if treasures != int(data_for_check["treasure"]): win = False
 
+    return win
 
-def play_game(board,  player_pos):
-    return "left"
+def play_game(board, player_pos):
+    if board[player_pos[1]][player_pos[0]] == "E":
+        return "escape"
+    if board[player_pos[1]][player_pos[0]] == "l":
+        return "pull"
+    return "escape"
 
-difficulty = 1
+difficulty = 3
 random = Rand(1)
 
 if __name__ == '__main__':
