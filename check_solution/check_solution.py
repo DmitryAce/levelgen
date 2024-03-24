@@ -727,7 +727,7 @@ def check_solution(group, task, variant, code):
     if "treasure" in data_for_check:
         if treasures != int(data_for_check["treasure"]): win = False
     return win
-
+ 
 
 difficulty = 3
 random = Rand(1)
