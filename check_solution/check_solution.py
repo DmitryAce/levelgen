@@ -3,10 +3,10 @@ from pathlib import Path
 import copy
 
 move = {
-    "up": (0,-1),
-    "down": (0,1),
-    "right": (1,0),
-    "left": (-1,0),
+    "up": (0, -1),
+    "down": (0, 1),
+    "right": (1, 0),
+    "left": (-1, 0),
 }
 
 actions_dict = {
@@ -23,7 +23,7 @@ actions_dict = {
         "up": "up",
         "down": "down",
         "left": "left",
-        "right":  "right",
+        "right": "right",
         "pick_up": "take",
         "pull_lever": "pull",
         "exit": "escape"
@@ -47,6 +47,7 @@ actions_dict = {
         "depart": "escape"
     },
 }
+
 
 def xorshift32(x):
     x ^= x << 13
@@ -172,7 +173,7 @@ def map_generator(seed, difficulty, shift):
     # --- RANDOM GAMEPLAY ---
     N = difficulty
     gen_method = random.choice(gen_method)
-    width = N*8
+    width = N * 8
     match N:
         case 1:
             coin_chance = 0.5
@@ -182,7 +183,6 @@ def map_generator(seed, difficulty, shift):
             coin_chance = 0
     player_set = random.randint(1, 4)
     rooms = N
-
 
     # ---MAP---
 
@@ -620,7 +620,6 @@ def find_E_locations(grid, start):
     return sorted_distances
 
 
-
 def check_solution(group, task, variant, code):
     seed = sum([ord(i) for i in list(group)]) + task + variant
     random.set_seed(seed)
@@ -638,8 +637,8 @@ def check_solution(group, task, variant, code):
         playability = not (check_level(board_temp, spawnpoint, data_for_check))
 
     for h in board:
-        print('"'+''.join(h)+'",')
-    print("spawnpoint = "+str(spawnpoint))
+        print('"' + ''.join(h) + '",')
+    print("spawnpoint = " + str(spawnpoint))
 
     # Проверка скрипта студента
     player_pos = spawnpoint
@@ -649,15 +648,18 @@ def check_solution(group, task, variant, code):
     treasures = 0
     opened = 0
     escaped = 0
+    player_script = dict()
+    exec(code, player_script)
+    print(player_set)
 
     while turns:
         if escaped:
             break
         turns -= 1
-        if not play_game(board, player_pos) in actions_dict["set"+str(player_set)]:
+        if not player_script["play_game"](board, player_pos) in actions_dict["set" + str(player_set)]:
             # Здесь можно уведомлять что неверное действие
             continue
-        act = actions_dict["set"+str(player_set)][play_game(board,  player_pos)]
+        act = actions_dict["set" + str(player_set)][player_script["play_game"](board, player_pos)]
         type = board[player_pos[1]][player_pos[0]]
 
         match act:
@@ -687,7 +689,8 @@ def check_solution(group, task, variant, code):
                 match type:
                     case "E":
                         # Проверка на ложные выходы
-                        if len(find_E_locations(board, spawnpoint)) > 1 and player_pos != find_E_locations(board, spawnpoint)[0][0]:
+                        if len(find_E_locations(board, spawnpoint)) > 1 and player_pos != \
+                                find_E_locations(board, spawnpoint)[0][0]:
                             return False
                         escaped = 1
                         continue
@@ -698,19 +701,23 @@ def check_solution(group, task, variant, code):
                 continue
 
         # Движение
-        if (board[player_pos[1]+move[act][1]][player_pos[0]+move[act][0]] != "#"  and  0 <= player_pos[0] +
-            move[act][0] <= len(board[0])) and  0 <= player_pos[1]+move[act][1] <= len(board):
-            if (board[player_pos[1]+move[act][1]][player_pos[0]+move[act][0]] == "d"):
+        if (board[player_pos[1] + move[act][1]][player_pos[0] + move[act][0]] != "#" and 0 <= player_pos[0] +
+            move[act][0] <= len(board[0])) and 0 <= player_pos[1] + move[act][1] <= len(board):
+            if (board[player_pos[1] + move[act][1]][player_pos[0] + move[act][0]] == "d"):
                 if player_keys:
                     player_keys -= 1
-                    board[player_pos[1]+move[act][1]][player_pos[0]+move[act][0]] = " "
-                    player_pos = (player_pos[0]+move[act][0], player_pos[1]+move[act][1])
+                    board[player_pos[1] + move[act][1]][player_pos[0] + move[act][0]] = " "
+                    player_pos = (player_pos[0] + move[act][0], player_pos[1] + move[act][1])
                 else:
                     continue
             else:
                 player_pos = (player_pos[0] + move[act][0], player_pos[1] + move[act][1])
         else:
             continue
+
+    for h in board:
+        print('"' + ''.join(h) + '",')
+    print("spawnpoint = " + str(spawnpoint))
 
     win = True
     if "coins" in data_for_check:
@@ -721,12 +728,6 @@ def check_solution(group, task, variant, code):
         if treasures != int(data_for_check["treasure"]): win = False
     return win
 
-def play_game(board, player_pos):
-    if board[player_pos[1]][player_pos[0]] == "E":
-        return "escape"
-    if board[player_pos[1]][player_pos[0]] == "l":
-        return "pull"
-    return "escape"
 
 difficulty = 3
 random = Rand(1)
@@ -735,7 +736,40 @@ if __name__ == '__main__':
     TESTS = [{"ИКБО-03-22": [list(range(40)), list(range(40))]}]
     GROUPS, TASKS = ["ИКБО-03-22"], [0, 1]
 
-    check_solution("ИКБО-03-22", 13, 4, "left")
+    code = """
+def play_game(board, player_pos):
+    if board[player_pos[1]][player_pos[0]] == "1":
+        print("collected")
+        return "take"
+    else:
+        return width_search((player_pos[0], player_pos[1]), board)[0]
+    
+def get_directions(path_points):
+    directions = {
+        (1, 0): "go_east",
+        (-1, 0): "go_west",
+        (0, 1): "go_south",
+        (0, -1): "go_north"
+    }
+    return [directions[(p[0]-path_points[i][0], p[1]-path_points[i][1])] for i, p in enumerate(path_points[1:])]
 
+def width_search(source_point, board):
+    queue, reached, parents = [source_point], {source_point}, {}
 
+    while queue:
+        current = queue.pop(0)
+        if board[current[1]][current[0]] == "1":
+            path_points = [current]
+            while path_points[-1] in parents:
+                path_points.append(parents[path_points[-1]])
+            return get_directions(path_points[::-1])
+        for dx, dy in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
+            p = (current[0] + dx, current[1] + dy)
+            if 0 < p[0] < len(board[0]) and 0 < p[1] < len(board) and (not (board[p[1]][p[0]] in ["#", "d"])) and p not in reached:
+                queue.append(p)
+                reached.add(p) 
+                parents[p] = current  
+    return "pass"
+"""
 
+    check_solution("ИКБО-03-22", 13, 4, code)
