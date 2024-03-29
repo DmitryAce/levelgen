@@ -35,7 +35,7 @@ for i in range(0, N):
 ```
 
 # Пройдёмся по коду
-
+<u>*!-------------------Неактуально-------------------!*</u>
 - **Словари** `move` и `actions_dict` просто для удобства.
 - **ГПСЧ**:  `def xorshift32`, `class Rand` 
 - **Создание начальной карты проходов**: `def options`, `def rule`, `def interp`
@@ -133,23 +133,6 @@ def check_level(board, spawn, plot):
                         break  
     return playability
 ```
-
-## Касательно выходов
-`find_E_locations` - Функция определяющая расстояния до выходов от стартовой позиции. 
-На карте из примера (сложность 3) получим: `[((24, 11), 26), ((15, 0), 14), ((0, 3), 6)]`
-Далее, если выходов > 1, то настоящим окажется наиболее отдаленный. Часть кода отвечающая за это:
-```py
-case "escape":  
-    match type:  
-        case "E":  
-            # Проверка на ложные выходы  
-            if len(find_E_locations(board, spawnpoint)) > 1 and player_pos != find_E_locations(board, spawnpoint)[0][0]:  
-                return False  
-            escaped = 1  
-            continue  
-        ...
-```
-
 ## Проверка, что код игрока в итоге прошел уровень
 ```py
 win = True  
@@ -161,3 +144,21 @@ if "treasure" in data_for_check:
     if treasures != int(data_for_check["treasure"]): win = False  
 return win
 ```
+
+
+## Корректировка сокровищниц
+```py
+# G fix
+        if x == 3:
+            x -= 1
+        elif x == width - 4:
+            x += 1
+        if y == height - 4:
+            y += 1
+        elif y == 3:
+            y -= 1
+```
+**Before:** 
+![map](maps/before.png)
+**After:**
+![map](maps/after.png)
