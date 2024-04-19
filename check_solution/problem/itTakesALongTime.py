@@ -27,17 +27,19 @@ State = namedtuple('State', 'cords money treasures keys doors exits')
 
 def init(x, y):
     empty = frozenset()
-    return State(((x, y),), empty, empty, empty, empty, empty)
+    state = State(empty, empty, empty, empty, empty, empty)
+    cords = state.cords.union({(x, y)})
+    return state._replace(cords=cords)
 
 def open(state, x, y):
     if (x, y) in state.doors:
-        cords = state.cords + ((x,y),)
+        cords = state.cords.union({(x, y)})
         return state._replace(cords=cords)
     keys = len(state.keys)
     open = len(state.doors)
     if keys - open > 0:
         doors = state.doors.union({(x, y)})
-        return state._replace(cords=((x,y),), doors=doors)
+        return state._replace(cords={(x, y)}, doors=doors)
     return state
 
 def go(board, state, x=0, y=0):
@@ -49,7 +51,7 @@ def go(board, state, x=0, y=0):
         return state
     if board[y][x] == 'd':
         return open(state, x, y)
-    cords = state.cords + ((x,y),)
+    cords = state.cords.union({(x, y)})
     return state._replace(cords=cords)
 
 def collect(board, state, mark, name):
@@ -58,7 +60,7 @@ def collect(board, state, mark, name):
     collected = (x, y) in getattr(state, name)
     if exists and not collected:
         new = getattr(state, name).union({(x, y)})
-        return state._replace(cords=((x,y),), **{name: new})
+        return state._replace(cords={(x, y)}, **{name: new})
     return state
 
 def make_dandybot_model(board, start, is_goal):
@@ -79,10 +81,10 @@ def make_simplified_dandybot_model(board, start, is_goal):
     graph = make_dandybot_model(board, start, is_goal)
     merged = {}
     for state in graph:
-        key = state._replace(cords= ((0,0),))
+        key = state._replace(cords={(0, 0)})
         merged.setdefault(key, set())
         for target in graph[state]:
-            merged[key].add(target._replace(cords=((0,0),)))
+            merged[key].add(target._replace(cords={(0, 0)}))
     return merged
 
 def analyze(board, init, goal):
