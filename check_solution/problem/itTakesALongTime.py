@@ -1,5 +1,5 @@
 from collections import namedtuple
-import graphviz
+
 
 def make_model(graph, fstate, is_goal, actions):
     queue = [fstate]
@@ -23,40 +23,42 @@ def make_model(graph, fstate, is_goal, actions):
     return graph
 
 
-State = namedtuple('State', 'x y money treasures keys doors exits')
+State = namedtuple('State', 'cords money treasures keys doors exits')
 
 def init(x, y):
     empty = frozenset()
-    return State(x, y, empty, empty, empty, empty, empty)
+    return State(((x, y),), empty, empty, empty, empty, empty)
 
 def open(state, x, y):
     if (x, y) in state.doors:
-        return state._replace(x=x, y=y)
+        cords = state.cords + ((x,y),)
+        return state._replace(cords=cords)
     keys = len(state.keys)
     open = len(state.doors)
     if keys - open > 0:
         doors = state.doors.union({(x, y)})
-        return state._replace(x=x, y=y, doors=doors)
+        return state._replace(cords=((x,y),), doors=doors)
     return state
 
 def go(board, state, x=0, y=0):
     mx = len(board[0]) - 1
     my = len(board) - 1
-    x = max(min(state.x + x, mx), 0)
-    y = max(min(state.y + y, my), 0)
+    x = max(min(state.cords[-1][0] + x, mx), 0)
+    y = max(min(state.cords[-1][1] + y, my), 0)
     if board[y][x] == '#':
         return state
     if board[y][x] == 'd':
         return open(state, x, y)
-    return state._replace(x=x, y=y)
+    cords = state.cords + ((x,y),)
+    return state._replace(cords=cords)
 
 def collect(board, state, mark, name):
-    x, y = state.x, state.y
+    x, y = state.cords[-1][0], state.cords[-1][1]
     exists = board[y][x] == mark
     collected = (x, y) in getattr(state, name)
     if exists and not collected:
         new = getattr(state, name).union({(x, y)})
-        return state._replace(**{name: new})
+        return state._replace(cords=((x,y),), **{name: new})
     return state
 
 def make_dandybot_model(board, start, is_goal):
@@ -77,10 +79,10 @@ def make_simplified_dandybot_model(board, start, is_goal):
     graph = make_dandybot_model(board, start, is_goal)
     merged = {}
     for state in graph:
-        key = state._replace(x=0, y=0)
+        key = state._replace(cords= ((0,0),))
         merged.setdefault(key, set())
         for target in graph[state]:
-            merged[key].add(target._replace(x=0, y=0))
+            merged[key].add(target._replace(cords=((0,0),)))
     return merged
 
 def analyze(board, init, goal):
@@ -109,6 +111,16 @@ simple_puzzle = [
     "# ###1###1 1#1# #",
     "#1 1      1     #",
     "##########E##E###"
+]
+simple_puzzle_init = init(2, 1)
+simple_puzzle_goal = lambda state: len(state.money) == 4 and len(state.exits) == 1
+simple_puzzle = [
+    "#################",
+    "#     #     #  1#",
+    "# ### # ### # #1#",
+    "#      11   # # #",
+    "# ##   ## ### # #",
+    "#E###############"
 ]
 
 analyze(simple_puzzle, simple_puzzle_init, simple_puzzle_goal)
