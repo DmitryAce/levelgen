@@ -1,5 +1,4 @@
 from collections import namedtuple
-import graphviz
 
 def make_model(graph, fstate, is_goal, actions):
     queue = [fstate]

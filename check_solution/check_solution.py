@@ -1,4 +1,5 @@
 import json, time
+import sys
 from pathlib import Path
 import copy
 from collections import namedtuple
@@ -181,7 +182,7 @@ def init_plot(difficulty):
 def init_map(difficulty, gen_method):
     """Инициализация карты"""
 
-    height, width = difficulty * 8, difficulty * 8
+    height, width = difficulty * 3+2, difficulty * 3+2
     board = [['B' for _ in range(width)] for _ in range(height)]
 
     # Gen Map Based on NAM
@@ -475,7 +476,6 @@ def map_generator(difficulty):
                 board, exit_task = case2(board, treasure_coordinates)
 
     task, data_for_check = make_task(rooms, exit_task, coins_task)
-    print(task, data_for_check)
 
     # --SPAWNPOINT--
     spawnpoint = []
@@ -661,10 +661,6 @@ def check_solution(group, task, variant, code):
         board_temp = copy.deepcopy(board)
         playability = not (check_level(board_temp, spawnpoint, data_for_check))
 
-    for h in board:
-        print('"' + ''.join(h) + '",')
-    print("spawnpoint = " + str(spawnpoint))
-
     # Проверка скрипта студента
     player_pos = spawnpoint
     turns = 10000
@@ -675,7 +671,6 @@ def check_solution(group, task, variant, code):
     escaped = 0
     player_script = dict()
     exec(code, player_script)
-    print(player_set)
 
     while turns:
         if escaped:
@@ -683,11 +678,21 @@ def check_solution(group, task, variant, code):
         turns -= 1
         match player_set:
             case 1:
-                act = s1[player_script["play_game"](board, player_pos)]
+                try:
+                    act = s1[player_script["play_game"](board, player_pos)]
+                except Exception as e:
+                    act = "pass"
             case 2:
-                act = s2[player_script["play_game"](board, player_pos)]
+                try:
+                    act = s2[player_script["play_game"](board, player_pos)]
+                except Exception as e:
+                    act = "pass"
             case 3:
-                act = s3[player_script["play_game"](board, player_pos)]
+                try:
+                    act = s3[player_script["play_game"](board, player_pos)]
+                except Exception as e:
+                    act = "pass"
+
             case 4:
                 continue
 
@@ -730,6 +735,9 @@ def check_solution(group, task, variant, code):
                             escaped = 1
                         continue
                 continue
+            case "pass":
+                continue
+
 
         # Движение
         if (board[player_pos[1] + move[act][1]][player_pos[0] + move[act][0]] != "#" and 0 <= player_pos[0] +
@@ -745,10 +753,6 @@ def check_solution(group, task, variant, code):
                 player_pos = (player_pos[0] + move[act][0], player_pos[1] + move[act][1])
         else:
             continue
-
-    for h in board:
-        print('"' + ''.join(h) + '",')
-    print("spawnpoint = " + str(spawnpoint))
 
     win = True
     if "coins" in data_for_check:
@@ -770,16 +774,16 @@ if __name__ == '__main__':
     code = """
 def play_game(board, player_pos):
     if board[player_pos[1]][player_pos[0]] == "1":
-        return "take"
+        return "collect"
     else:
         return width_search((player_pos[0], player_pos[1]), board)[0]
     
 def get_directions(path_points):
     directions = {
-        (1, 0): "go_east",
-        (-1, 0): "go_west",
-        (0, 1): "go_south",
-        (0, -1): "go_north"
+        (1, 0): "east",
+        (-1, 0): "west",
+        (0, 1): "south",
+        (0, -1): "north"
     }
     return [directions[(p[0]-path_points[i][0], p[1]-path_points[i][1])] for i, p in enumerate(path_points[1:])]
 
@@ -802,4 +806,9 @@ def width_search(source_point, board):
     return "pass"
 """
 
-    check_solution("ИКБО-03-22", 13, 4, code)
+
+    def get_stdin():
+        return '\n'.join(line for line in sys.stdin)
+
+    task, group, code = 12, ["asdgasdfa", 4], code
+    print(check_solution(group[0], task, group[1], code))
