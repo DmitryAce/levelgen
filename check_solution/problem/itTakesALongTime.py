@@ -1,6 +1,7 @@
 from collections import namedtuple
 import graphviz
 
+
 def make_model(graph, fstate, is_goal, actions):
     queue = [fstate]
     while queue:
@@ -25,9 +26,11 @@ def make_model(graph, fstate, is_goal, actions):
 
 State = namedtuple('State', 'x y money treasures keys doors exits')
 
+
 def init(x, y):
     empty = frozenset()
     return State(x, y, empty, empty, empty, empty, empty)
+
 
 def open(state, x, y):
     if (x, y) in state.doors:
@@ -38,6 +41,7 @@ def open(state, x, y):
         doors = state.doors.union({(x, y)})
         return state._replace(x=x, y=y, doors=doors)
     return state
+
 
 def go(board, state, x=0, y=0):
     mx = len(board[0]) - 1
@@ -50,6 +54,7 @@ def go(board, state, x=0, y=0):
         return open(state, x, y)
     return state._replace(x=x, y=y)
 
+
 def collect(board, state, mark, name):
     x, y = state.x, state.y
     exists = board[y][x] == mark
@@ -59,6 +64,7 @@ def collect(board, state, mark, name):
         return state._replace(**{name: new})
     return state
 
+
 def make_dandybot_model(board, start, is_goal):
     def act(state):
         state = collect(board, state, '1', 'money')
@@ -66,12 +72,14 @@ def make_dandybot_model(board, start, is_goal):
         state = collect(board, state, 't', 'treasures')
         state = collect(board, state, 'E', 'exits')
         return state
+
     return make_model({}, start, is_goal, [
         lambda state: act(go(board, state, y=-1)),
         lambda state: act(go(board, state, y=+1)),
         lambda state: act(go(board, state, x=-1)),
         lambda state: act(go(board, state, x=+1)),
     ])
+
 
 def make_simplified_dandybot_model(board, start, is_goal):
     graph = make_dandybot_model(board, start, is_goal)
@@ -82,6 +90,7 @@ def make_simplified_dandybot_model(board, start, is_goal):
         for target in graph[state]:
             merged[key].add(target._replace(x=0, y=0))
     return merged
+
 
 def analyze(board, init, goal):
     regular = make_dandybot_model(board, init, goal)

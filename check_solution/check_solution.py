@@ -3,6 +3,7 @@ from pathlib import Path
 import copy
 from collections import namedtuple
 
+
 class Directed:
     def __init__(self, **mapping):
         self.mapping = mapping
@@ -19,6 +20,7 @@ class Directed:
             case other:
                 return other
 
+
 s1 = dict(north='up', south='down', east='right', west='left', collect='take', trigger='pull', exit='escape')
 s2 = dict(up='up', down='down', rigth='right', left='left', take='take', pull='pull', escape='escape')
 s3 = Directed(turn='rotate', go='move', pick='take', switch='pull', flee='escape')
@@ -29,6 +31,7 @@ move = {
     "right": (1, 0),
     "left": (-1, 0),
 }
+
 
 def xorshift32(x):
     x ^= x << 13
@@ -153,7 +156,6 @@ def init_plot(difficulty):
     events = ["coins", "exit", "treasure"]
     gen_method = ["MazeBacktracker", "MazeGrowth", "NoDeadEnds"]
     plot = []
-
 
     gen_method = random.choice(gen_method)
 
@@ -322,22 +324,26 @@ def generate_doors(board, tiles, x, y):
         # Выбор стороны для двери и проверка что вход не находится на краю карты (внутри блока)
         if door == 1 and y != 2:
             k = random.randint(1, 3)
-            if not ([x - 2 + k, y - 2] in tiles): continue
+            if not ([x - 2 + k, y - 2] in tiles):
+                continue
             board[y - 2][x - 2 + k] = 'd'
             break
         elif door == 2 and x != width - 3:
             k = random.randint(1, 3)
-            if not ([x + 2, y - 2 + k] in tiles): continue
+            if not ([x + 2, y - 2 + k] in tiles):
+                continue
             board[y - 2 + k][x + 2] = 'd'
             break
         elif door == 3 and y != height - 3:
             k = random.randint(1, 3)
-            if not ([x - 2 + k, y + 2] in tiles): continue
+            if not ([x - 2 + k, y + 2] in tiles):
+                continue
             board[y + 2][x - 2 + k] = 'd'
             break
         elif door == 4 and x != 2:
             k = random.randint(1, 3)
-            if not ([x - 2, y - 2 + k] in tiles): continue
+            if not ([x - 2, y - 2 + k] in tiles):
+                continue
             board[y - 2 + k][x - 2] = 'd'
             break
     return board
@@ -361,6 +367,7 @@ def generate_coins(board, coin_chance):
             coins_goal -= 1
 
     return board, to_task
+
 
 def generate_exit(board, width, height):
     while True:
@@ -429,7 +436,7 @@ def case2(board, treasure_coordinates):
     return board, to_task
 
 
-def make_task(rooms, exit_task, coins_task = 0):
+def make_task(rooms, exit_task, coins_task=0):
     task = []
     data_for_check = {}  # Создаем словарь для проверки решаемости
 
@@ -642,7 +649,7 @@ def check_level(board, spawn, plot):
     for z in board:
         simple_puzzle.append("".join(z))
     simple_puzzle_goal = lambda state: len(state.treasures) == term1 and len(state.money) == term2 and (
-                len(state.lever) == termL) and state.escaped == term3
+            len(state.lever) == termL) and state.escaped == term3
     playability = analyze(simple_puzzle, init(spawn[0], spawn[1]), simple_puzzle_goal, spawn)
     return playability
 
@@ -758,7 +765,7 @@ def check_solution(group, task, variant, code):
     if "treasure" in data_for_check:
         if treasures != int(data_for_check["treasure"]): win = False
     return win
- 
+
 
 difficulty = 3
 random = Rand(1)
